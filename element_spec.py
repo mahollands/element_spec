@@ -64,6 +64,9 @@ try:
 except IOError:
   print("Could not find file: {}".format(args.fname))
   exit()
+except ValueError:
+  print("Could not parse file: {}".format(args.fname))
+  exit()
 if args.gb > 0.:
   S.convolve_gaussian(args.gb)
 
