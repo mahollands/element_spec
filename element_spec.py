@@ -40,7 +40,7 @@ args = parser.parse_args()
 def line_profile(x, linedata, res, wl):
   boltz = np.exp(-beta*linedata['E_low'])
   V = voigt(x, vac_to_air(linedata['lambda']), res, wl)
-  return 10**linedata['loggf'] * boltz * V
+  return 10**(linedata['loggf']) * boltz * V
 
 def model(p, x):
   A, res, wl = p
@@ -53,13 +53,17 @@ beta = 1/(0.695*args.Teff)
 INSTALL_DIR = "/home/astro/phujdu/Software/element_spec/"
 
 #Load spectrum
-if args.model:
-  if args.fname.endswith(".dk"):
-    S = model_from_txt(args.fname, skiprows=55)
+try:
+  if args.model:
+    if args.fname.endswith(".dk"):
+      S = model_from_txt(args.fname, skiprows=55)
+    else:
+      S = model_from_txt(args.fname, skiprows=55)
   else:
-    S = model_from_txt(args.fname, skiprows=55)
-else:
-  S = spec_from_txt(args.fname)
+    S = spec_from_txt(args.fname)
+except IOError:
+  print("Could not find file: {}".format(args.fname))
+  exit()
 if args.gb > 0.:
   S.convolve_gaussian(args.gb)
 
