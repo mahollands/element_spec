@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
 import matplotlib.pyplot as plt
-from mh.spectra import voigt, spec_from_txt, model_from_txt, vac_to_air, Spectrum, black_body
+from mh.spectra import *
 from scipy.signal import medfilt
 from scipy.interpolate import UnivariateSpline
 import argparse
@@ -10,7 +10,7 @@ import argparse
 # Arg parse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("fname", type=str, \
+parser.add_argument("fnames", type=str, \
   help="File with spectral data")
 parser.add_argument("El", type=str, \
   help="Element to display")
@@ -53,20 +53,25 @@ beta = 1/(0.695*args.Teff)
 INSTALL_DIR = "/home/astro/phujdu/Software/element_spec/"
 
 #Load spectrum
-try:
-  if args.model:
-    if args.fname.endswith(".dk"):
-      S = model_from_txt(args.fname, skiprows=55)
+def load_spec(fname):
+  try:
+    if args.model:
+      if fname.endswith(".dk"):
+        return model_from_txt(fname, skiprows=55)
+      else:
+        return model_from_txt(fname)
     else:
-      S = model_from_txt(args.fname, skiprows=55)
-  else:
-    S = spec_from_txt(args.fname)
-except IOError:
-  print("Could not find file: {}".format(args.fname))
-  exit()
-except ValueError:
-  print("Could not parse file: {}".format(args.fname))
-  exit()
+      return spec_from_txt(fname)
+  except IOError:
+    print("Could not find file: {}".format(fname))
+    exit()
+  except ValueError:
+    print("Could not parse file: {}".format(fname))
+    exit()
+
+SS = [load_spec(f) for f in args.fnames.split(',')]
+S = join_spectra(SS, sort=True)
+
 if args.gb > 0.:
   S.convolve_gaussian(args.gb)
 
