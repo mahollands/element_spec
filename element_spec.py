@@ -6,6 +6,8 @@ from scipy.signal import medfilt
 from scipy.interpolate import UnivariateSpline
 import argparse
 
+INSTALL_DIR = "/home/astro/phujdu/Software/element_spec/"
+
 #..............................................................................
 # Arg parse
 
@@ -28,19 +30,26 @@ parser.add_argument("-wl", type=float, default=2.0, \
   help="Lorentzian width [\AA] (default=2.0)")
 parser.add_argument("-gb", type=float, default=-1.0, \
   help="Gaussian blur spectrum [\AA]")
-parser.add_argument("--norm", type=str, default="BB", \
-  help="normalisation: BB (def), unit, fitnear")
+parser.add_argument("--norm", type=str, default="BB", choices=["BB","unit"], \
+  help="normalisation: BB (def), unit")
 parser.add_argument("--model", type=bool, default=False, \
   help="model: True/False (is the input a model)")
+parser.add_argument("-N", type=int, default=500, \
+  help="N strongest lines used")
+parser.add_argument("--wave", type=str, default="air", choices=["air","vac"], \
+  help="Wavelengths (air/vac)")
 args = parser.parse_args()
+
+beta = 1/(0.695*args.Teff)
 
 #.............................................................................
 # methods
 
 def line_profile(x, linedata, res, wl):
   boltz = np.exp(-beta*linedata['E_low'])
-  V = voigt(x, vac_to_air(linedata['lambda']), res, wl)
-  return 10**(linedata['loggf']) * boltz * V
+  gf = 10**(linedata['loggf'])
+  V = voigt(x, linedata['lambda'], res, wl)
+  return  gf * boltz * V
 
 def model(p, x):
   A, res, wl = p
@@ -48,9 +57,6 @@ def model(p, x):
   return np.exp(-A*LL)
 
 #.............................................................................
-
-beta = 1/(0.695*args.Teff)
-INSTALL_DIR = "/home/astro/phujdu/Software/element_spec/"
 
 #Load spectrum
 def load_spec(fname):
@@ -86,17 +92,29 @@ if len(Linedata) == 0:
   print(*[ion.decode() for ion in all_ions])
   exit()
 
+#Change to air wavelengths
+if args.wave == "air":
+  Linedata['lambda'] = vac_to_air(Linedata['lambda'])
+
+#Only use lines in data range
 validwave = (Linedata['lambda'] > S.x[0]) & (Linedata['lambda'] < S.x[-1])
 Linedata = Linedata[validwave]
 if len(Linedata) == 0:
   print("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, S.x[0], S.x[-1]))
   exit()
 
+#Only use N strongest lines
+boltz = np.exp(-beta*Linedata['E_low'])
+gf = 10**(Linedata['loggf'])
+linestrength = gf * boltz
+strongest = np.argsort(linestrength)[-args.N:]
+Linedata = Linedata[strongest]
+
 #Generate model with lines from specified Ion at specified Teff
 xm = np.arange(S.x[0], S.x[-1], 0.1)
 ym = model((args.Au, args.res, args.wl), xm)
 M = Spectrum(xm, ym, np.zeros_like(xm))
-M.apply_redshift(args.rv, 'air')
+M.apply_redshift(args.rv, args.wave)
 
 #Normalisation
 if args.norm == "BB":
@@ -104,8 +122,6 @@ if args.norm == "BB":
   M = args.scale*M.scale_model(S)
 elif args.norm == "unit":
   M *= args.scale
-else:
-  raise ValueError("--norm should be one of BB (def), unit, fitnear")
 
 plt.figure(figsize=(12,6))
 plt.plot(S.x, S.y, c='grey', drawstyle='steps-mid')
