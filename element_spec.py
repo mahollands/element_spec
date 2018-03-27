@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 from mh.spectra import *
 from scipy.signal import medfilt
@@ -46,7 +47,7 @@ beta = 1/(0.695*args.Teff)
 # methods
 
 def line_profile(x, linedata, res, wl):
-  boltz = np.exp(-beta*linedata['E_low'])
+  boltz = math.exp(-beta*linedata['E_low'])
   gf = 10**(linedata['loggf'])
   V = voigt(x, linedata['lambda'], res, wl)
   return  gf * boltz * V
