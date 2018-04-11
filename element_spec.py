@@ -3,8 +3,6 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from mh.spectra import *
-from scipy.signal import medfilt
-from scipy.interpolate import UnivariateSpline
 import argparse
 
 INSTALL_DIR = "/home/astro/phujdu/Software/element_spec/"
