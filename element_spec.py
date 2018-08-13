@@ -4,6 +4,7 @@ import math
 import matplotlib.pyplot as plt
 from mh.spectra import *
 import argparse
+import glob
 
 INSTALL_DIR = "/home/astro/phujdu/Software/element_spec/"
 
@@ -37,6 +38,10 @@ parser.add_argument("-N", type=int, default=500, \
   help="N strongest lines used")
 parser.add_argument("--wave", type=str, default="air", choices=["air","vac"], \
   help="Wavelengths (air/vac)")
+parser.add_argument("--write", type=bool, default=False, \
+  help="Write 'model' to disk")
+parser.add_argument("--read", type=bool, default=False, \
+  help="Read 'models' from disk")
 args = parser.parse_args()
 
 beta = 1/(0.695*args.Teff)
@@ -61,10 +66,10 @@ def model(p, x):
 def load_spec(fname):
   try:
     if args.model:
-      if fname.endswith(".dk"):
-        return model_from_txt(fname, skiprows=55)
-      else:
-        return model_from_txt(fname)
+      skip = 55 if fname.endswith(".dk") else 0
+      M = model_from_txt(fname, skiprows=skip)
+      M.e = np.abs(M.y/100)
+      return M
     else:
       return spec_from_txt(fname)
   except IOError:
@@ -113,7 +118,7 @@ Linedata = Linedata[strongest]
 xm = np.arange(S.x[0], S.x[-1], 0.1)
 ym = model((args.Au, args.res, args.wl), xm)
 M = Spectrum(xm, ym, np.zeros_like(xm))
-M.apply_redshift(args.rv, args.wave)
+M.apply_redshift(args.rv)
 
 #Normalisation
 if args.norm == "BB":
@@ -123,11 +128,19 @@ elif args.norm == "unit":
   M *= args.scale
 
 plt.figure(figsize=(12,6))
-plt.plot(S.x, S.y, c='grey', drawstyle='steps-mid')
-plt.plot(M.x, M.y, 'r-')
+plt.plot(S.x, S.y, c='grey', drawstyle='steps-mid', zorder=1)
+plt.plot(M.x, M.y, 'r-', zorder=3)
+if args.read:
+  flist = glob.iglob("*.els")
+  MMr = [model_from_txt(fname) for fname in flist]
+  for Mr in MMr:
+    plt.plot(Mr.x, Mr.y, 'b-', zorder=2, alpha=0.5)
 plt.xlim(S.x[0], S.x[-1])
 plt.ylim(0, 1.2*np.percentile(S.y, 99))
 plt.xlabel("Wavelength [\AA]")
 plt.ylabel("Normalised flux")
 plt.tight_layout()
 plt.show()
+
+if args.write:
+  M.write("LTE-{}-{:.0f}.els".format(args.El, args.Teff), errors=False)
