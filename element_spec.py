@@ -40,7 +40,7 @@ parser.add_argument("--wave", type=str, default="air", choices=["air","vac"], \
   help="Wavelengths (air/vac)")
 parser.add_argument("--write", type=bool, default=False, \
   help="Write 'model' to disk")
-parser.add_argument("--read", type=bool, default=False, \
+parser.add_argument("--read", type=bool, default=True, \
   help="Read 'models' from disk")
 args = parser.parse_args()
 
