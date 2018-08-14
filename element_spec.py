@@ -52,7 +52,10 @@ beta = 1/(0.695*args.Teff)
 def line_profile(x, linedata, res, wl):
   boltz = math.exp(-beta*linedata['E_low'])
   gf = 10**(linedata['loggf'])
-  V = voigt(x, linedata['lambda'], res, wl)
+  calc_x = (x-linedata['lambda'])**2 < 100*res**2 + wl**2
+  V = np.zeros_like(x)
+  V[calc_x] = voigt(x[calc_x], linedata['lambda'], res, wl)
+  #V = voigt(x, linedata['lambda'], res, wl)
   return  gf * boltz * V
 
 def model(p, x):
