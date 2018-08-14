@@ -143,7 +143,8 @@ plt.ylim(0, 1.2*np.percentile(S.y, 99))
 plt.xlabel("Wavelength [\AA]")
 plt.ylabel("Normalised flux")
 plt.tight_layout()
-plt.show()
-
 if args.write:
   M.write("LTE-{}-{:.0f}.els".format(args.El, args.Teff), errors=False)
+  plt.close()
+else:
+  plt.show()
