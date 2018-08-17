@@ -49,18 +49,20 @@ beta = 1/(0.695*args.Teff)
 #.............................................................................
 # methods
 
-def line_profile(x, linedata, res, wl):
+def lorentzian(x, x0, wl):
+  return 1/(np.pi*wl*(1+((x-x0)/wl)**2))
+
+def line_profile(x, linedata, wl):
   boltz = math.exp(-beta*linedata['E_low'])
   gf = 10**(linedata['loggf'])
-  calc_x = (x-linedata['lambda'])**2 < 100*(res**2 + wl**2)
+  calc_x = np.abs(x-linedata['lambda']) < 10*wl
   V = np.zeros_like(x)
-  V[calc_x] = voigt(x[calc_x], linedata['lambda'], res, wl)
-  #V = voigt(x, linedata['lambda'], res, wl)
+  V[calc_x] = lorentzian(x[calc_x], linedata['lambda'], wl)
   return  gf * boltz * V
 
 def model(p, x):
-  A, res, wl = p
-  LL = sum(line_profile(x, linedata, res, wl) for linedata in Linedata)
+  A, wl = p
+  LL = sum(line_profile(x, linedata, wl) for linedata in Linedata)
   return np.exp(-A*LL)
 
 #.............................................................................
@@ -120,9 +122,10 @@ Linedata = Linedata[strongest]
 #Generate model with lines from specified Ion at specified Teff
 model_wave = "vac" if args.model or args.wave=="vac" else "air"
 xm = np.arange(S.x[0], S.x[-1], 0.1)
-ym = model((args.Au, args.res, args.wl), xm)
+ym = model((args.Au, args.wl), xm)
 M = Spectrum(xm, ym, np.zeros_like(xm), wavelengths=model_wave)
 M.apply_redshift(args.rv)
+M.convolve_gaussian(args.res)
 
 #Normalisation
 if args.norm == "BB":
