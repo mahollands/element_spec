@@ -38,10 +38,10 @@ parser.add_argument("-N", type=int, default=500, \
   help="N strongest lines used")
 parser.add_argument("--wave", type=str, default="air", choices=["air","vac"], \
   help="Wavelengths (air/vac)")
-parser.add_argument("--write", type=bool, default=False, \
+parser.add_argument("--write", action="store_const", const=True, \
   help="Write 'model' to disk")
-parser.add_argument("--read", type=bool, default=True, \
-  help="Read 'models' from disk")
+parser.add_argument("--noread", dest="read", action="store_const", const=False, default=True, \
+  help="Ignore disk models")
 args = parser.parse_args()
 
 beta = 1/(0.695*args.Teff)
@@ -118,9 +118,10 @@ strongest = np.argsort(linestrength)[-args.N:]
 Linedata = Linedata[strongest]
 
 #Generate model with lines from specified Ion at specified Teff
+model_wave = "vac" if args.model or args.wave=="vac" else "air"
 xm = np.arange(S.x[0], S.x[-1], 0.1)
 ym = model((args.Au, args.res, args.wl), xm)
-M = Spectrum(xm, ym, np.zeros_like(xm))
+M = Spectrum(xm, ym, np.zeros_like(xm), wavelengths=model_wave)
 M.apply_redshift(args.rv)
 
 #Normalisation
