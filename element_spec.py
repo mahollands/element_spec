@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from mh.spectra import *
 import argparse
 import glob
+from functools import reduce
+import operator
 
 INSTALL_DIR = "/home/astro/phujdu/Software/element_spec/"
 
@@ -64,6 +66,20 @@ def model(p, x):
   A, wl = p
   LL = sum(line_profile(x, linedata, wl) for linedata in Linedata)
   return np.exp(-A*LL)
+
+def normalise(M, S, args):
+  if args.norm == "BB":
+    M *= black_body(xm, args.Teff)
+    M = args.scale*M.scale_model(S)
+  elif args.norm == "unit":
+    M *= args.scale
+  else:
+    raise ValueError
+  return M
+
+def load_els(fname, wave):
+  x, y = np.load(fname)
+  return Spectrum(x, y, np.zeros_like(x), wavelengths=wave)
 
 #.............................................................................
 
@@ -126,26 +142,26 @@ ym = model((args.Au, args.wl), xm)
 M = Spectrum(xm, ym, np.zeros_like(xm), wavelengths=model_wave)
 M.apply_redshift(args.rv)
 M.convolve_gaussian(args.res)
+M = normalise(M, S, args)
 
-#Normalisation
-if args.norm == "BB":
-  M *= black_body(xm, args.Teff)
-  M = args.scale*M.scale_model(S)
-elif args.norm == "unit":
-  M *= args.scale
+#Load data from other ions if necessary
+if args.read:
+  flist = glob.glob("LTE*.npy")
+  if len(flist) > 0:
+    Mr = reduce(operator.mul, (load_els(fname, args.wave) for fname in flist))
+    Mr = normalise(Mr, S, args)
+  else:
+    args.read=False
 
 if args.write:
-  M.write("LTE-{}-{:.0f}.els".format(args.El, args.Teff), errors=False)
+  np.save("LTE-{}-{:.0f}".format(args.El, args.Teff), np.array([M.x, M.y]))
   plt.close()
 else:
   plt.figure(figsize=(12,6))
   plt.plot(S.x, S.y, c='grey', drawstyle='steps-mid', zorder=1)
   plt.plot(M.x, M.y, 'r-', zorder=3)
   if args.read:
-    flist = glob.iglob("*.els")
-    MMr = [model_from_txt(fname) for fname in flist]
-    for Mr in MMr:
-      plt.plot(Mr.x, Mr.y, 'b-', zorder=2, alpha=0.5)
+    plt.plot(Mr.x, Mr.y, 'C0-', zorder=2)
   plt.xlim(S.x[0], S.x[-1])
   plt.ylim(0, 1.2*np.percentile(S.y, 99))
   plt.xlabel("Wavelength [\AA]")
