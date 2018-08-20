@@ -77,10 +77,6 @@ def normalise(M, S, args):
     raise ValueError
   return M
 
-def load_els(fname, wave):
-  x, y = np.load(fname)
-  return Spectrum(x, y, np.zeros_like(x), wavelengths=wave)
-
 #.............................................................................
 
 #Load spectrum
@@ -148,14 +144,13 @@ M = normalise(M, S, args)
 if args.read:
   flist = glob.glob("LTE*.npy")
   if len(flist) > 0:
-    Mr = reduce(operator.mul, (load_els(fname, args.wave) for fname in flist))
+    Mr = reduce(operator.mul, (spec_from_npy(fname, args.wave) for fname in flist))
     Mr = normalise(Mr, S, args)
   else:
     args.read=False
 
 if args.write:
-  np.save("LTE-{}-{:.0f}".format(args.El, args.Teff), np.array([M.x, M.y]))
-  plt.close()
+  M.write("LTE-{}-{:.0f}.npy".format(args.El, args.Teff))
 else:
   plt.figure(figsize=(12,6))
   plt.plot(S.x, S.y, c='grey', drawstyle='steps-mid', zorder=1)
