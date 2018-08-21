@@ -56,7 +56,7 @@ def lorentzian(x, x0, wl):
 
 def line_profile(x, linedata, wl):
   boltz = math.exp(-beta*linedata['E_low'])
-  gf = 10**(linedata['loggf'])
+  gf = 10**(0.5*linedata['loggf'])
   calc_x = np.abs(x-linedata['lambda']) < 10*wl
   V = np.zeros_like(x)
   V[calc_x] = lorentzian(x[calc_x], linedata['lambda'], wl)
@@ -88,7 +88,7 @@ def load_spec(fname):
       M.e = np.abs(M.y/100)
       return M
     else:
-      return spec_from_txt(fname)
+      return spec_from_txt(fname, wave=args.wave)
   except IOError:
     print("Could not find file: {}".format(fname))
     exit()
