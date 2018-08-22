@@ -51,18 +51,27 @@ beta = 1/(0.695*args.Teff)
 #.............................................................................
 # methods
 
-def lorentzian(x, x0, wl):
-  return 1/(np.pi*wl*(1+((x-x0)/wl)**2))
+def lorentzian(x, x0, w):
+  """
+  Unit-normed Lorentzian profile. w=FWHM
+  """
+  return 1/(np.pi*w*(1+(0.5*(x-x0)/w)**2))
 
 def line_profile(x, linedata, wl):
+  """
+  Creates line profile for a single line
+  """
   boltz = math.exp(-beta*linedata['E_low'])
-  gf = 10**(0.5*linedata['loggf'])
+  gf = 10**(linedata['loggf'])
   calc_x = np.abs(x-linedata['lambda']) < 10*wl
   V = np.zeros_like(x)
   V[calc_x] = lorentzian(x[calc_x], linedata['lambda'], wl)
   return  gf * boltz * V
 
 def model(p, x):
+  """
+  Creates absorption profile from combination of lines
+  """
   A, wl = p
   LL = sum(line_profile(x, linedata, wl) for linedata in Linedata)
   return np.exp(-A*LL)
