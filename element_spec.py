@@ -147,25 +147,26 @@ ym = model((args.Au, args.wl), xm)
 M = Spectrum(xm, ym, np.zeros_like(xm), wavelengths=model_wave)
 M.apply_redshift(args.rv)
 M.convolve_gaussian(args.res)
-M = normalise(M, S, args)
 
 #Load data from other ions if necessary
-if args.read:
+if args.read and not args.write:
   flist = glob.glob("LTE*.npy")
   if len(flist) > 0:
     Mr = reduce(operator.mul, (spec_from_npy(fname, args.wave) for fname in flist))
     Mr = normalise(Mr, S, args)
   else:
+    #If no models saved, don't try and plot Mr
     args.read=False
 
 if args.write:
   M.write("LTE-{}-{:.0f}.npy".format(args.El, args.Teff))
 else:
+  M = normalise(M, S, args)
   plt.figure(figsize=(12,6))
-  plt.plot(S.x, S.y, c='grey', drawstyle='steps-mid', zorder=1)
-  plt.plot(M.x, M.y, 'r-', zorder=3)
+  S.plot(c='grey', drawstyle='steps-mid', zorder=1)
+  M.plot('r-', zorder=3)
   if args.read:
-    plt.plot(Mr.x, Mr.y, 'C0-', zorder=2)
+    Mr.plot('C0-', zorder=2)
   plt.xlim(S.x[0], S.x[-1])
   plt.ylim(0, 1.2*np.percentile(S.y, 99))
   plt.xlabel("Wavelength [\AA]")
