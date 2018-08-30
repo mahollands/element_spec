@@ -28,10 +28,10 @@ parser.add_argument("-s", "--scale", type=float, default=1., \
   help="Rescale model by factor")
 parser.add_argument("--res", type=float, default=2.0, \
   help="Model resolution [\AA] (default=2.0)")
-parser.add_argument("-wl", type=float, default=2.0, \
-  help="Lorentzian width [\AA] (default=2.0)")
+parser.add_argument("-wl", type=float, default=0.5, \
+  help="Lorentzian width [\AA] (default=0.5)")
 parser.add_argument("-gb", type=float, default=-1.0, \
-  help="Gaussian blur spectrum [\AA]")
+  help="Gaussian blur data [\AA]")
 parser.add_argument("--norm", type=str, default="BB", choices=["BB","unit"], \
   help="normalisation: BB (def), unit")
 parser.add_argument("--model", type=bool, default=False, \
@@ -144,7 +144,7 @@ Linedata = Linedata[strongest]
 model_wave = "vac" if args.model or args.wave=="vac" else "air"
 xm = np.arange(S.x[0], S.x[-1], 0.1)
 ym = model((args.Au, args.wl), xm)
-M = Spectrum(xm, ym, np.zeros_like(xm), wavelengths=model_wave)
+M = Spectrum(xm, ym, np.zeros_like(xm), wave=model_wave)
 M.apply_redshift(args.rv)
 M.convolve_gaussian(args.res)
 
