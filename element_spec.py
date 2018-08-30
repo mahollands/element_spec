@@ -109,7 +109,7 @@ SS = [load_spec(f) for f in args.fnames.split(',')]
 S = join_spectra(SS, sort=True)
 
 if args.gb > 0.:
-  S.convolve_gaussian(args.gb)
+  S = S.convolve_gaussian(args.gb)
 
 #Create linelist
 Linedata = np.load(INSTALL_DIR+"linelist.rec.npy")
@@ -146,7 +146,7 @@ xm = np.arange(S.x[0], S.x[-1], 0.1)
 ym = model((args.Au, args.wl), xm)
 M = Spectrum(xm, ym, np.zeros_like(xm), wave=model_wave)
 M.apply_redshift(args.rv)
-M.convolve_gaussian(args.res)
+M = M.convolve_gaussian(args.res)
 
 #Load data from other ions if necessary
 if args.read and not args.write:
