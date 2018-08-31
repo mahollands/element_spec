@@ -77,7 +77,7 @@ def model(p, x):
 
 def normalise(M, S, args):
   if args.norm == "BB":
-    M *= black_body(xm, args.Teff)
+    M *= Black_body(M.x, args.Teff, x_unit=S.x_unit, y_unit=S.y_unit)
     M = args.scale*M.scale_model(S)
   elif args.norm == "unit":
     M *= args.scale
@@ -143,7 +143,7 @@ Linedata = Linedata[strongest]
 model_wave = "vac" if args.model or args.wave=="vac" else "air"
 xm = np.arange(S.x[0], S.x[-1], 0.1)
 ym = model((args.Au, args.wl), xm)
-M = Spectrum(xm, ym, np.zeros_like(xm), wave=model_wave)
+M = Spectrum(xm, ym, np.zeros_like(xm), wave=model_wave, y_unit="")
 M.apply_redshift(args.rv)
 M = M.convolve_gaussian(args.res)
 
@@ -151,9 +151,10 @@ M = M.convolve_gaussian(args.res)
 if args.read and not args.write:
   flist = glob.glob("LTE*.npy")
   if len(flist) > 0:
-    Mr = reduce(operator.mul, (spec_from_npy(fname, args.wave) for fname in flist))
-    Mr.y_unit = S.y_unit
+    Mr = reduce(operator.mul, (spec_from_npy(fname, args.wave, y_unit="") for fname in flist))
+    print(Mr.y_unit)
     Mr = normalise(Mr, S, args)
+    print(Mr.y_unit)
   else:
     #If no models saved, don't try and plot Mr
     args.read=False
