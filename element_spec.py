@@ -64,9 +64,8 @@ def line_profile(x, linedata, wl):
   boltz = math.exp(-beta*linedata['E_low'])
   gf = 10**(linedata['loggf'])
   calc_x = np.abs(x-linedata['lambda']) < 10*wl
-  V = np.zeros_like(x)
-  V[calc_x] = lorentzian(x[calc_x], linedata['lambda'], wl)
-  return  gf * boltz * V
+  V = lorentzian(x, linedata['lambda'], wl)
+  return gf * boltz * V
 
 def model(p, x):
   """
@@ -153,6 +152,7 @@ if args.read and not args.write:
   flist = glob.glob("LTE*.npy")
   if len(flist) > 0:
     Mr = reduce(operator.mul, (spec_from_npy(fname, args.wave) for fname in flist))
+    Mr.y_unit = S.y_unit
     Mr = normalise(Mr, S, args)
   else:
     #If no models saved, don't try and plot Mr
