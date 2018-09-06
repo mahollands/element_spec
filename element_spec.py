@@ -34,8 +34,8 @@ parser.add_argument("-gb", type=float, default=-1.0, \
   help="Gaussian blur data [\AA]")
 parser.add_argument("--norm", type=str, default="BB", choices=["BB","unit"], \
   help="normalisation: BB (def), unit")
-parser.add_argument("--model", type=bool, default=False, \
-  help="model: True/False (is the input a model)")
+parser.add_argument("--model", action="store_const", const=True, \
+  help="model: use if the input a model (doesn't have errors)")
 parser.add_argument("-N", type=int, default=500, \
   help="N strongest lines used")
 parser.add_argument("--wave", type=str, default="air", choices=["air","vac"], \
@@ -45,6 +45,8 @@ parser.add_argument("--write", action="store_const", const=True, \
 parser.add_argument("--noread", dest="read", action="store_const", const=False, default=True, \
   help="Ignore disk models")
 args = parser.parse_args()
+
+print(args.model)
 
 beta = 1/(0.695*args.Teff)
 
