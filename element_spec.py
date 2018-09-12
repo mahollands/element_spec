@@ -156,7 +156,7 @@ if args.read and not args.write:
   flist = glob.glob("LTE*.npy")
   if len(flist) > 0:
     Mr = reduce(operator.mul, (spec_from_npy(fname, args.wave, y_unit="") for fname in flist))
-    assert len(Mr) == len(S), "Length of loaded models does not match data"
+    assert len(Mr) == len(M), "Length of loaded models does not match data"
     Mr = normalise(Mr, S, args)
   else:
     #If no models saved, don't try and plot Mr
