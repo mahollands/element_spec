@@ -46,8 +46,6 @@ parser.add_argument("--noread", dest="read", action="store_const", const=False, 
   help="Ignore disk models")
 args = parser.parse_args()
 
-print(args.model)
-
 beta = 1/(0.695*args.Teff)
 
 #.............................................................................
@@ -79,8 +77,11 @@ def model(p, x):
 
 def normalise(M, S, args):
   if args.norm == "BB":
-    M *= Black_body(M.x, args.Teff, x_unit=S.x_unit, y_unit=S.y_unit)
-    M = args.scale*M.scale_model(S)
+    M *= Black_body(M.x, args.Teff, args.wave, S.x_unit, S.y_unit)
+    if args.model:
+      M = args.scale*M.scale_model_to_model(S)  
+    else:
+      M = args.scale*M.scale_model(S)
   elif args.norm == "unit":
     M *= args.scale
   else:
@@ -141,6 +142,7 @@ linestrength = gf * boltz
 strongest = np.argsort(linestrength)[-args.N:]
 Linedata = Linedata[strongest]
 
+
 #Generate model with lines from specified Ion at specified Teff
 model_wave = "vac" if args.model or args.wave=="vac" else "air"
 xm = np.arange(S.x[0], S.x[-1], 0.1)
@@ -154,9 +156,8 @@ if args.read and not args.write:
   flist = glob.glob("LTE*.npy")
   if len(flist) > 0:
     Mr = reduce(operator.mul, (spec_from_npy(fname, args.wave, y_unit="") for fname in flist))
-    print(Mr.y_unit)
+    assert len(Mr) == len(S), "Length of loaded models does not match data"
     Mr = normalise(Mr, S, args)
-    print(Mr.y_unit)
   else:
     #If no models saved, don't try and plot Mr
     args.read=False
