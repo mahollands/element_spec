@@ -7,6 +7,7 @@ import argparse
 import glob
 from functools import reduce
 import operator
+from numba import jit, vectorize, float64
 
 INSTALL_DIR = "/home/astro/phujdu/Software/element_spec/"
 
@@ -51,12 +52,14 @@ beta = 1/(0.695*args.Teff)
 #.............................................................................
 # methods
 
+@vectorize([float64(float64, float64, float64)])
 def lorentzian(x, x0, w):
   """
   Unit-normed Lorentzian profile. w=FWHM
   """
   return 1/(np.pi*w*(1+(0.5*(x-x0)/w)**2))
 
+@jit(nopython=True, parallel=True)
 def line_profile(x, linedata, wl):
   """
   Creates line profile for a single line
@@ -67,12 +70,23 @@ def line_profile(x, linedata, wl):
   V = lorentzian(x, linedata['lambda'], wl)
   return gf * boltz * V
 
+#def model(p, x):
+#  """
+#  Creates absorption profile from combination of lines
+#  """
+#  A, wl = p
+#  LL = sum(line_profile(x, linedata, wl) for linedata in Linedata)
+#  return np.exp(-A*LL)
+
+@jit(nopython=True)
 def model(p, x):
   """
   Creates absorption profile from combination of lines
   """
   A, wl = p
-  LL = sum(line_profile(x, linedata, wl) for linedata in Linedata)
+  LL = np.zeros_like(x)
+  for linedata in Linedata:
+    LL += line_profile(x, linedata, wl)
   return np.exp(-A*LL)
 
 def normalise(M, S, args):
