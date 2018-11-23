@@ -59,6 +59,7 @@ def lorentzian(x, x0, w):
   """
   return 1/(np.pi*w*(1+(0.5*(x-x0)/w)**2))
 
+#@jit(nopython=True)
 @jit(nopython=True, parallel=True)
 def line_profile(x, linedata, wl):
   """
@@ -87,6 +88,9 @@ def model(p, x):
   LL = np.zeros_like(x)
   for linedata in Linedata:
     LL += line_profile(x, linedata, wl)
+  k = 1e8/x
+  stim = 1 - np.exp(-beta*k)
+  LL *= stim
   return np.exp(-A*LL)
 
 def normalise(M, S, args):
@@ -160,7 +164,11 @@ Linedata = Linedata[strongest]
 #Generate model with lines from specified Ion at specified Teff
 model_wave = "vac" if args.model or args.wave=="vac" else "air"
 xm = np.arange(S.x[0], S.x[-1], 0.1)
+import time
+t0 = time.time()
 ym = model((args.Au, args.wl), xm)
+t1 = time.time()
+print(t1-t0)
 M = Spectrum(xm, ym, np.zeros_like(xm), wave=model_wave, y_unit="")
 M.apply_redshift(args.rv)
 M = M.convolve_gaussian(args.res)
