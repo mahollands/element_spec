@@ -52,45 +52,30 @@ beta = 1/(0.695*args.Teff)
 #.............................................................................
 # methods
 
-@vectorize([float64(float64, float64, float64)])
+@vectorize([float64(float64, float64, float64)], cache=True)
 def lorentzian(x, x0, w):
   """
   Unit-normed Lorentzian profile. w=FWHM
   """
   return 1/(np.pi*w*(1+(0.5*(x-x0)/w)**2))
 
-#@jit(nopython=True)
-@jit(nopython=True, parallel=True)
+@jit(nopython=True, cache=True)
 def line_profile(x, linedata, wl):
   """
   Creates line profile for a single line
   """
   boltz = math.exp(-beta*linedata['E_low'])
+
   gf = 10**(linedata['loggf'])
-  calc_x = np.abs(x-linedata['lambda']) < 10*wl
   V = lorentzian(x, linedata['lambda'], wl)
   return gf * boltz * V
 
-#def model(p, x):
-#  """
-#  Creates absorption profile from combination of lines
-#  """
-#  A, wl = p
-#  LL = sum(line_profile(x, linedata, wl) for linedata in Linedata)
-#  return np.exp(-A*LL)
-
-@jit(nopython=True)
 def model(p, x):
   """
   Creates absorption profile from combination of lines
   """
   A, wl = p
-  LL = np.zeros_like(x)
-  for linedata in Linedata:
-    LL += line_profile(x, linedata, wl)
-  k = 1e8/x
-  stim = 1 - np.exp(-beta*k)
-  LL *= stim
+  LL = sum(line_profile(x, linedata, wl) for linedata in Linedata)
   return np.exp(-A*LL)
 
 def normalise(M, S, args):
@@ -177,7 +162,9 @@ M = M.convolve_gaussian(args.res)
 if args.read and not args.write:
   flist = glob.glob("LTE*.npy")
   if len(flist) > 0:
-    Mr = reduce(operator.mul, (spec_from_npy(fname, args.wave, y_unit="") for fname in flist))
+    MMr = [spec_from_npy(fname, args.wave, y_unit="") for fname in flist \
+      if not fname.startswith("LTE-{}-".format(args.El))]
+    Mr = reduce(operator.mul, MMr)
     assert len(Mr) == len(M), "Length of loaded models does not match data"
     Mr = normalise(Mr, S, args)
   else:
