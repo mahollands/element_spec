@@ -8,8 +8,11 @@ import glob
 from functools import reduce
 import operator
 from numba import jit, vectorize, float64
+import os.path
 
-INSTALL_DIR = "/home/astro/phujdu/Software/element_spec/"
+#If this program is run via a softlink, realpath resolves this, and so the
+#data associated with this program can be located.
+INSTALL_DIR = os.path.dirname(os.path.realpath(__file__))
 
 #..............................................................................
 # Arg parse
@@ -117,7 +120,7 @@ if args.gb > 0.:
   S = S.convolve_gaussian(args.gb)
 
 #Create linelist
-Linedata = np.load(INSTALL_DIR+"linelist.rec.npy")
+Linedata = np.load(f"{INSTALL_DIR}/linelist.rec.npy")
 all_ions = np.unique(Linedata['ion'])
 ionmatch = Linedata['ion'] == args.El.encode()
 Linedata = Linedata[ionmatch]
@@ -149,11 +152,7 @@ Linedata = Linedata[strongest]
 #Generate model with lines from specified Ion at specified Teff
 model_wave = "vac" if args.model or args.wave=="vac" else "air"
 xm = np.arange(S.x[0], S.x[-1], 0.1)
-import time
-t0 = time.time()
 ym = model((args.Au, args.wl), xm)
-t1 = time.time()
-print(t1-t0)
 M = Spectrum(xm, ym, np.zeros_like(xm), wave=model_wave, y_unit="")
 M.apply_redshift(args.rv)
 M = M.convolve_gaussian(args.res)
@@ -175,7 +174,7 @@ if args.write:
   M.write("LTE-{}-{:.0f}.npy".format(args.El, args.Teff))
 else:
   M = normalise(M, S, args)
-  plt.figure(figsize=(12,6))
+  plt.figure(figsize=(12, 6))
   S.plot(c='grey', drawstyle='steps-mid', zorder=1)
   M.plot('r-', zorder=3)
   if args.read:
