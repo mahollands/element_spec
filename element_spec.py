@@ -3,6 +3,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from mh.spectra import *
+from mh.spectra.misc import black_body
 import argparse
 import glob
 from functools import reduce
@@ -83,7 +84,9 @@ def model(p, x):
 
 def normalise(M, S, args):
   if args.norm == "BB":
-    M *= Black_body(M.x, args.Teff, args.wave, S.x_unit, S.y_unit)
+    BB = Black_body(M.x, args.Teff, args.wave, S.x_unit, S.y_unit)
+    M *= BB
+    #M *= Black_body(M.x, args.Teff, args.wave, S.x_unit, S.y_unit)
     if args.model:
       M = args.scale*M.scale_model_to_model(S)  
     else:
@@ -112,6 +115,18 @@ def load_spec(fname):
   except ValueError:
     print("Could not parse file: {}".format(fname))
     exit()
+
+def load_previous_models(S, M, args):
+  flist = glob.glob("LTE*.npy")
+  if len(flist) == 0:
+    return None
+  else:
+    MMr = [spec_from_npy(fname, args.wave, y_unit="") for fname in flist \
+      if not fname.startswith("LTE-{}-".format(args.El))] #ignore current element
+    Mr = reduce(operator.mul, MMr)
+    assert len(Mr) == len(M), "Length of loaded models does not match data"
+    Mr = normalise(Mr, S, args)
+    return Mr
 
 SS = [load_spec(f) for f in args.fnames.split(',')]
 S = join_spectra(SS, sort=True)
@@ -148,7 +163,6 @@ linestrength = gf * boltz
 strongest = np.argsort(linestrength)[-args.N:]
 Linedata = Linedata[strongest]
 
-
 #Generate model with lines from specified Ion at specified Teff
 model_wave = "vac" if args.model or args.wave=="vac" else "air"
 xm = np.arange(S.x[0], S.x[-1], 0.1)
@@ -157,28 +171,18 @@ M = Spectrum(xm, ym, np.zeros_like(xm), wave=model_wave, y_unit="")
 M.apply_redshift(args.rv)
 M = M.convolve_gaussian(args.res)
 
-#Load data from other ions if necessary
-if args.read and not args.write:
-  flist = glob.glob("LTE*.npy")
-  if len(flist) > 0:
-    MMr = [spec_from_npy(fname, args.wave, y_unit="") for fname in flist \
-      if not fname.startswith("LTE-{}-".format(args.El))]
-    Mr = reduce(operator.mul, MMr)
-    assert len(Mr) == len(M), "Length of loaded models does not match data"
-    Mr = normalise(Mr, S, args)
-  else:
-    #If no models saved, don't try and plot Mr
-    args.read=False
-
 if args.write:
   M.write("LTE-{}-{:.0f}.npy".format(args.El, args.Teff))
 else:
+  #Make plot
   M = normalise(M, S, args)
   plt.figure(figsize=(12, 6))
   S.plot(c='grey', drawstyle='steps-mid', zorder=1)
   M.plot('r-', zorder=3)
   if args.read:
-    Mr.plot('C0-', zorder=2)
+    Mr = load_previous_models(S, M, args)
+    if Mr is not None:
+      Mr.plot('C0-', zorder=2)
   plt.xlim(S.x[0], S.x[-1])
   plt.ylim(0, 1.2*np.percentile(S.y, 99))
   plt.xlabel("Wavelength [\AA]")
