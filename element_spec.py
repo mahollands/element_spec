@@ -164,12 +164,13 @@ strongest = np.argsort(linestrength)[-args.N:]
 Linedata = Linedata[strongest]
 
 #Generate model with lines from specified Ion at specified Teff
-model_wave = "vac" if args.model or args.wave=="vac" else "air"
+model_wave = "vac" if (args.model or args.wave=="vac") else "air"
 xm = np.arange(S.x[0], S.x[-1], 0.1)
 ym = model((args.Au, args.wl), xm)
 M = Spectrum(xm, ym, np.zeros_like(xm), wave=model_wave, y_unit="")
 M.apply_redshift(args.rv)
 M = M.convolve_gaussian(args.res)
+M += 1E-300 #Needed to deal with numerical issues with very strong lines after convolution
 
 if args.write:
   M.write("LTE-{}-{:.0f}.npy".format(args.El, args.Teff))
