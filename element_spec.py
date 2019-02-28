@@ -100,7 +100,7 @@ def normalise(M, S, args):
 #.............................................................................
 
 #Load spectrum
-def load_spec(fname):
+def load_spec(fname, args):
   try:
     if args.model:
       skip = 55 if fname.endswith(".dk") else 0
@@ -128,7 +128,12 @@ def load_previous_models(S, M, args):
     Mr = normalise(Mr, S, args)
     return Mr
 
-SS = [load_spec(f) for f in args.fnames.split(',')]
+#...........................................................
+
+if args.model:
+  args.wave = 'vac'
+
+SS = [load_spec(f, args) for f in args.fnames.split(',')]
 S = join_spectra(SS, sort=True)
 
 if args.gb > 0.:
@@ -164,10 +169,9 @@ strongest = np.argsort(linestrength)[-args.N:]
 Linedata = Linedata[strongest]
 
 #Generate model with lines from specified Ion at specified Teff
-model_wave = "vac" if (args.model or args.wave=="vac") else "air"
 xm = np.arange(S.x[0], S.x[-1], 0.1)
 ym = model((args.Au, args.wl), xm)
-M = Spectrum(xm, ym, np.zeros_like(xm), wave=model_wave, y_unit="")
+M = Spectrum(xm, ym, np.zeros_like(xm), wave=args.wave, y_unit="")
 M.apply_redshift(args.rv)
 M = M.convolve_gaussian(args.res)
 M += 1E-300 #Needed to deal with numerical issues with very strong lines after convolution
