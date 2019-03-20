@@ -64,7 +64,7 @@ def lorentzian(x, x0, w):
   return 1/(np.pi*w*(1+(0.5*(x-x0)/w)**2))
 
 @jit(nopython=True, cache=True)
-def line_profile(x, linedata, wl):
+def line_profile(x, linedata, wl, beta):
   """
   Creates line profile for a single line
   """
@@ -79,7 +79,7 @@ def model(p, x):
   Creates absorption profile from combination of lines
   """
   A, wl = p
-  LL = sum(line_profile(x, linedata, wl) for linedata in Linedata)
+  LL = sum(line_profile(x, linedata, wl, beta) for linedata in Linedata)
   return np.exp(-A*LL)
 
 def normalise(M, S, args):
