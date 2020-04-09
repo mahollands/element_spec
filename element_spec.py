@@ -3,7 +3,6 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from mh.spectra import *
-from mh.spectra.misc import black_body
 import argparse
 import glob
 from functools import reduce
