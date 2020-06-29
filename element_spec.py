@@ -2,7 +2,10 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from mh.spectra import *
+try:
+    from mh.spectra import *
+except ImportError:
+    from spectra import *
 import argparse
 import glob
 from functools import reduce
