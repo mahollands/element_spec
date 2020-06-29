@@ -179,7 +179,7 @@ M = M.convolve_gaussian(args.res)
 M += 1E-300 #Needed to deal with numerical issues with very strong lines after convolution
 
 if args.write:
-  M.write("LTE-{}-{:.0f}.npy".format(args.El, args.Teff))
+  M.write(f"LTE-{args.El}-{args.Teff:.0f}.npy", errors=False)
 else:
   #Make plot
   M = normalise(M, S, args)
