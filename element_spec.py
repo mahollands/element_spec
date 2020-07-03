@@ -120,10 +120,10 @@ def load_spec(fname, args):
     else:
       return spec_from_txt(fname, wave=args.wave)
   except IOError:
-    print("Could not find file: {}".format(fname))
+    print(f"Could not find file: {fname}")
     exit()
   except ValueError:
-    print("Could not parse file: {}".format(fname))
+    print(f"Could not parse file: {fname}")
     exit()
 
 def load_previous_models(S, M, args):
@@ -166,7 +166,7 @@ all_ions = np.unique(Linedata['ion'])
 ionmatch = Linedata['ion'] == args.El.encode()
 Linedata = Linedata[ionmatch]
 if len(Linedata) == 0:
-  print("Could not find atomic data for {}".format(args.El))
+  print(f"Could not find atomic data for {args.El}")
   print("Available Ions:")
   print(*[ion.decode() for ion in all_ions])
   exit()
@@ -179,7 +179,7 @@ if args.wave == "air":
 validwave = (Linedata['lam'] > S.x[0]) & (Linedata['lam'] < S.x[-1])
 Linedata = Linedata[validwave]
 if len(Linedata) == 0:
-  print("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, S.x[0], S.x[-1]))
+  print("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, *S.x01))
   exit()
 
 #Only use N strongest lines (and set strength column)
