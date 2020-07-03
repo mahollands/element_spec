@@ -113,8 +113,7 @@ def normalise(M, S, args):
 def load_spec(fname, args):
   try:
     if args.model:
-      skip = 55 if fname.endswith(".dk") else 0
-      M = model_from_txt(fname, skiprows=skip)
+      M = model_from_dk(fname) if fname.endswith(".dk") else model_from_txt(fname)
       M.e = np.abs(M.y/100)
       return M
     else:
@@ -129,7 +128,7 @@ def load_spec(fname, args):
 def load_previous_models(S, M, args):
   flist_abs = glob.glob("LTE*[0-9].npy")
   flist_em  = glob.glob("LTE*emission.npy")
-  if len(flist_abs) == 0 and len(flist_em) == 0:
+  if len(flist_abs), len(flist_em) == (0, 0):
     return None
   else:
     #Load absorption profiles
@@ -228,7 +227,7 @@ else:
         Mr = load_previous_models(S, M, args)
         if Mr is not None:
             Mr.plot('C0-', zorder=2)
-    plt.xlim(S.x[0], S.x[-1])
+    plt.xlim(*S.x01)
     plt.ylim(0, 1.2*np.percentile(S.y, 99))
     plt.xlabel("Wavelength [\AA]")
     plt.ylabel("Normalised flux")
