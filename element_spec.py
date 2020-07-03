@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
+import pandas as pd
 import math
 import matplotlib.pyplot as plt
 try:
@@ -43,6 +44,8 @@ parser.add_argument("--norm", type=str, default="BB", choices=["BB","unit"], \
   help="normalisation: BB (def), unit")
 parser.add_argument("--model", action="store_const", const=True, \
   help="model: use if the input a model (doesn't have errors)")
+parser.add_argument("--emission", action="store_const", const=True, \
+  help="emission: use to specify emission lines")
 parser.add_argument("-N", type=int, default=500, \
   help="N strongest lines used")
 parser.add_argument("--wave", type=str, default="air", choices=["air","vac"], \
@@ -65,23 +68,20 @@ def lorentzian(x, x0, w):
   """
   return 1/(np.pi*w*(1+(0.5*(x-x0)/w)**2))
 
-@jit(nopython=True, cache=True)
+#@jit(nopython=True, cache=True)
 def line_profile(x, linedata, wl, beta):
   """
   Creates line profile for a single line
   """
-  boltz = math.exp(-beta*linedata['E_low'])
-
-  gf = 10**(linedata['loggf'])
-  V = lorentzian(x, linedata['lambda'], wl)
-  return gf * boltz * V
+  V = lorentzian(x, linedata.lam, wl)
+  return linedata.strength * V
 
 def model(p, x):
   """
   Creates absorption profile from combination of lines
   """
   A, wl = p
-  LL = sum(line_profile(x, linedata, wl, beta) for linedata in Linedata)
+  LL = sum(line_profile(x, linedata, wl, beta) for linedata in Linedata.itertuples())
   return np.exp(-A*LL)
 
 def normalise(M, S, args):
@@ -143,6 +143,10 @@ if args.gb > 0.:
 
 #Create linelist
 Linedata = np.load(f"{INSTALL_DIR}/linelist.rec.npy")
+Linedata = pd.DataFrame(Linedata)
+if args.emission:
+    Linedata['E_hi'] = 1e8/Linedata['lam'] + Linedata['E_low']
+    Linedata['A_ki'] = 1e8 * 10**Linedata['loggf'] / Linedata['lam']**2
 all_ions = np.unique(Linedata['ion'])
 ionmatch = Linedata['ion'] == args.El.encode()
 Linedata = Linedata[ionmatch]
@@ -154,21 +158,29 @@ if len(Linedata) == 0:
 
 #Change to air wavelengths
 if args.wave == "air":
-  Linedata['lambda'] = vac_to_air(Linedata['lambda'])
+  Linedata['lam'] = vac_to_air(Linedata['lam'])
 
 #Only use lines in data range
-validwave = (Linedata['lambda'] > S.x[0]) & (Linedata['lambda'] < S.x[-1])
+validwave = (Linedata['lam'] > S.x[0]) & (Linedata['lam'] < S.x[-1])
 Linedata = Linedata[validwave]
 if len(Linedata) == 0:
   print("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, S.x[0], S.x[-1]))
   exit()
 
 #Only use N strongest lines
-boltz = np.exp(-beta*Linedata['E_low'])
-gf = 10**(Linedata['loggf'])
-linestrength = gf * boltz
-strongest = np.argsort(linestrength)[-args.N:]
-Linedata = Linedata[strongest]
+if args.emission:
+    boltz = np.exp(-beta*Linedata['E_hi'])
+    A_ki = Linedata['A_ki']
+    linestrength = A_ki * boltz
+else:
+    boltz = np.exp(-beta*Linedata['E_low'])
+    gf = 10**(Linedata['loggf'])
+    linestrength = gf * boltz
+#strongest = np.argsort(linestrength)[-args.N:]
+#Linedata = Linedata[strongest]
+Linedata['strength'] = linestrength
+Linedata.sort_values('strength', ascending=False, inplace=True)
+Linedata = Linedata[:args.N]
 
 #Generate model with lines from specified Ion at specified Teff
 xm = np.arange(S.x[0], S.x[-1], 0.1)
