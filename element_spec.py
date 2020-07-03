@@ -128,7 +128,7 @@ def load_spec(fname, args):
 def load_previous_models(S, M, args):
   flist_abs = glob.glob("LTE*[0-9].npy")
   flist_em  = glob.glob("LTE*emission.npy")
-  if len(flist_abs), len(flist_em) == (0, 0):
+  if (len(flist_abs), len(flist_em)) == (0, 0):
     return None
   else:
     #Load absorption profiles
