@@ -170,10 +170,6 @@ if len(Linedata) == 0:
   print(*[ion.decode() for ion in all_ions])
   exit()
 
-#Change to air wavelengths
-if args.wave == "air":
-  Linedata['lam'] = vac_to_air(Linedata['lam'])
-
 #Only use lines in data range
 validwave = (Linedata['lam'] > S.x[0]) & (Linedata['lam'] < S.x[-1])
 Linedata = Linedata[validwave]
@@ -197,6 +193,10 @@ Linedata = Linedata[:args.N]
 #Apply redshift to atomic data
 beta_v = args.rv / 2.998e5
 Linedata['lam'] *= np.sqrt((1+beta_v)/(1-beta_v))
+
+#Change to air wavelengths
+if args.wave == "air":
+  Linedata['lam'] = vac_to_air(Linedata['lam'])
 
 #Generate model with lines from specified Ion at specified Teff
 xm = np.arange(*S.x01, 0.1)
