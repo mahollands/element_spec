@@ -67,7 +67,7 @@ def lorentzian(x, x0, w):
   """
   Unit-normed Lorentzian profile. w=FWHM
   """
-  return 1/(np.pi*w*(1+(0.5*(x-x0)/w)**2))
+  return 1/(np.pi*w*(1+(2*(x-x0)/w)**2))
 
 #@jit(nopython=True, cache=True)
 def line_profile(x, linedata, wl, beta):
