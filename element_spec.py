@@ -210,12 +210,9 @@ if args.wave == "air":
 
 #Generate model with lines from specified Ion at specified Teff
 xm = np.arange(*S.x01, 0.1)
-if args.emission:
-    ym = model_em((args.Au, args.wl), xm)
-    M = Spectrum(xm, ym, np.zeros_like(xm), wave=args.wave, y_unit="")
-else:
-    ym = model_abs((args.Au, args.wl), xm)
-    M = Spectrum(xm, ym, np.zeros_like(xm), wave=args.wave, y_unit="")
+model_fun = model_em if args.emission else model_abs
+ym = model_fun((args.Au, args.wl), xm)
+M = Spectrum(xm, ym, np.zeros_like(xm), wave=args.wave, y_unit="")
 M = M.convolve_gaussian(args.res)
 M += 1E-300 #Needed to deal with numerical issues with very strong lines after convolution
 
