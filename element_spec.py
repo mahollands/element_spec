@@ -219,7 +219,7 @@ M += 1E-300 #Needed to deal with numerical issues with very strong lines after c
 if args.write:
     outname = f"LTE-{args.El}-{args.Teff:.0f}"
     outname += "_emission.npy" if args.emission else ".npy"
-    M.write(outname, errors=False)
+    M.write(outname)
 else:
     #Make plot
     M = normalise(M, S, args)
