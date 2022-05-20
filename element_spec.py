@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import argparse
 import glob
-from functools import reduce
+from functools import reduce, partial
 import operator
 import os.path
 import sys
@@ -59,6 +59,7 @@ args = parser.parse_args()
 
 #1/(kb*T) in cm-1
 beta = 1/(0.695*args.Teff)
+load_npy = partial(spec_from_npy, wave=args.wave, y_unit="")
 
 #.............................................................................
 # methods
@@ -137,18 +138,20 @@ def load_previous_models(S, M, args):
     Load and combine previously generated absorption
     profiles into a total profile
     """
-    flist_abs = glob.glob("LTE*[0-9].npy")
-    flist_em = glob.glob("LTE*emission.npy")
+    flist_abs, flist_em = glob.glob("LTE*[0-9].npy"), glob.glob("LTE*emission.npy")
     if (len(flist_abs), len(flist_em)) == (0, 0):
         return None
+        
     el_prefix = f"LTE-{args.El}-"
-    #Load absorption profiles
-    MMr_abs = (spec_from_npy(fname, args.wave, y_unit="") for fname in flist_abs \
-        if not fname.startswith(el_prefix) or args.emission) #ignore current element
-    #Load emission profiles profiles
-    MMr_em = (spec_from_npy(fname, args.wave, y_unit="") for fname in flist_em \
-        if not (fname.startswith(el_prefix) and args.emission)) #ignore current element
-    #combime
+    #Load absorption and emission profiles
+    if args.emission:
+        MMr_abs = map(load_npy, flist_abs)
+        MMr_em = (load_npy(f) for f in flist_em if not f.startswith(el_prefix))
+    else:
+        MMr_abs = (load_npy(f) for f in flist_abs if not f.startswith(el_prefix))
+        MMr_em = map(load_npy, flist_em)
+        
+    #combime abs and em profiles
     Mr = reduce(operator.mul, MMr_abs, 1) + sum(MMr_em)
 
     assert len(Mr) == len(M), "Length of loaded models does not match data"
