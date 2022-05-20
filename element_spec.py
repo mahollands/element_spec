@@ -41,7 +41,7 @@ parser.add_argument("-wl", type=float, default=0.5, \
     help=r"Lorentzian width [\AA] (default=0.5)")
 parser.add_argument("-gb", type=float, default=-1.0, \
     help=r"Gaussian blur data [\AA]")
-parser.add_argument("--norm", type=str, default="BB", choices=["BB", "unit"], \
+parser.add_argument("--norm", type=str, default="unit", choices=["BB", "unit"], \
     help=r"normalisation: BB (def), unit")
 parser.add_argument("--model", action="store_const", const=True, \
     help=r"model: use if the input a model (doesn't have errors)")
