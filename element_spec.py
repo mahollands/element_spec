@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 import argparse
 import glob
 from functools import reduce
@@ -141,18 +141,18 @@ def load_previous_models(S, M, args):
     flist_em = glob.glob("LTE*emission.npy")
     if (len(flist_abs), len(flist_em)) == (0, 0):
         return None
+    el_prefix = f"LTE-{args.El}-"
     #Load absorption profiles
-    MMr_abs = [spec_from_npy(fname, args.wave, y_unit="") for fname in flist_abs \
-        if not fname.startswith(f"LTE-{args.El}-") or args.emission] #ignore current element
+    MMr_abs = (spec_from_npy(fname, args.wave, y_unit="") for fname in flist_abs \
+        if not fname.startswith(el_prefix) or args.emission) #ignore current element
     #Load emission profiles profiles
-    MMr_em = [spec_from_npy(fname, args.wave, y_unit="") for fname in flist_em \
-        if not (fname.startswith(f"LTE-{args.El}-") and args.emission)] #ignore current element
+    MMr_em = (spec_from_npy(fname, args.wave, y_unit="") for fname in flist_em \
+        if not (fname.startswith(el_prefix) and args.emission)) #ignore current element
     #combime
     Mr = reduce(operator.mul, MMr_abs, 1) + sum(MMr_em)
 
     assert len(Mr) == len(M), "Length of loaded models does not match data"
-    Mr = normalise(Mr, S, args)
-    return Mr
+    return normalise(Mr, S, args)
 
 #...........................................................
 
