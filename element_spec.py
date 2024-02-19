@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 import argparse
 import glob
 from functools import reduce, partial
@@ -164,7 +164,7 @@ if args.model:
     args.wave = 'vac'
 
 SS = [load_spec(f, args) for f in args.fnames.split(',')]
-S = join_spectra(SS, sort=True)
+S = Spectrum.join(SS, sort=True)
 
 if args.gb > 0.:
     S = S.convolve_gaussian(args.gb)
