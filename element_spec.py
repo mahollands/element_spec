@@ -11,9 +11,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from numba import vectorize, float64
 try:
-    from mh.spectra import *
+    from mh.spectra import Spectrum, Black_body, vac_to_air
 except ImportError:
-    from spectra import *
+    from spectra import Spectrum, Black_body, vac_to_air
 
 #If this program is run via a softlink, realpath resolves this, and so the
 #data associated with this program can be located.
@@ -59,7 +59,7 @@ args = parser.parse_args()
 
 #1/(kb*T) in cm-1
 beta = 1/(0.695*args.Teff)
-load_npy = partial(spec_from_npy, wave=args.wave, y_unit="")
+load_npy = partial(Spectrum.from_npy, wave=args.wave, y_unit="")
 
 #.............................................................................
 # methods
@@ -104,15 +104,12 @@ def normalise(M, S, args):
     if args.norm == "BB":
         BB = Black_body(M.x, args.Teff, args.wave, S.x_unit, S.y_unit)
         M *= BB
-        if args.model:
-            M = args.scale*M.scale_model_to_model(S)
-        else:
-            M = args.scale*M.scale_model(S)
+        M = M.scale_model_to_model(S) if args.model else M.scale_model(S)
     elif args.norm == "unit":
-        M *= args.scale
+        pass
     else:
         raise ValueError
-    return M
+    return M * args.scale
 
 #.............................................................................
 
@@ -123,10 +120,10 @@ def load_spec(fname, args):
     """
     try:
         if args.model:
-            M = model_from_dk(fname) if fname.endswith(".dk") else model_from_txt(fname)
+            M = Spectrum.from_dk(fname) if fname.endswith(".dk") else Spectrum.from_txt(fname, model=True)
             M.e = np.abs(M.y/100)
             return M
-        return spec_from_txt(fname, wave=args.wave)
+        return Spectrum.from_txt(fname, wave=args.wave)
     except IOError:
         print(f"Could not find file: {fname}")
         sys.exit()
@@ -140,7 +137,7 @@ def load_previous_models(S, M, args):
     profiles into a total profile
     """
     flist_abs, flist_em = glob.glob("LTE*[0-9].npy"), glob.glob("LTE*emission.npy")
-    if (len(flist_abs), len(flist_em)) == (0, 0):
+    if not (flist_abs or flist_em):
         return None
         
     el_prefix = f"LTE-{args.El}-"
@@ -166,7 +163,7 @@ if args.model:
 SS = [load_spec(f, args) for f in args.fnames.split(',')]
 S = Spectrum.join(SS, sort=True)
 
-if args.gb > 0.:
+if args.gb:
     S = S.convolve_gaussian(args.gb)
 
 #Create linelist
@@ -178,7 +175,7 @@ if args.emission:
 all_ions = np.unique(Linedata['ion'])
 ionmatch = Linedata['ion'] == args.El.encode()
 Linedata = Linedata[ionmatch]
-if len(Linedata) == 0:
+if not len(Linedata):
     print(f"Could not find atomic data for {args.El}")
     print("Available Ions:")
     print(*[ion.decode() for ion in all_ions])
@@ -187,7 +184,7 @@ if len(Linedata) == 0:
 #Only use lines in data range
 validwave = (Linedata['lam'] > S.x[0]) & (Linedata['lam'] < S.x[-1])
 Linedata = Linedata[validwave]
-if len(Linedata) == 0:
+if not len(Linedata):
     print("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, *S.x01))
     sys.exit()
 
