@@ -5,7 +5,6 @@ specifically which ions) are present in a spectrum.
 ### Requirements
 * Usual data-analysis modules (numpy, scipy, matplotlib)
 * mh.spectra -- another repo of mine for working with astrophysical spectra
-* linelist.rec.npy -- this is not hosted here, but can be provided on request.
 
 ### Examples
 Basic usage looks like
