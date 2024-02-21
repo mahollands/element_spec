@@ -192,12 +192,11 @@ if not len(Linedata):
 if args.emission:
     boltz = np.exp(-beta*Linedata['E_hi'])
     A_ki = Linedata['A_ki']
-    linestrength = A_ki * boltz
+    Linedata['strength'] = A_ki * boltz
 else:
     boltz = np.exp(-beta*Linedata['E_low'])
     gf = 10**(Linedata['loggf'])
-    linestrength = gf * boltz
-Linedata['strength'] = linestrength
+    Linedata['strength'] = gf * boltz
 Linedata.sort_values('strength', ascending=False, inplace=True)
 Linedata = Linedata[:args.N]
 
