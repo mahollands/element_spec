@@ -24,7 +24,7 @@ INSTALL_DIR = os.path.dirname(os.path.realpath(__file__))
 
 parser = argparse.ArgumentParser()
 parser.add_argument("fnames", type=str, \
-    help=r"File with spectral data")
+    help=r"File with spectral data (type None if no data)")
 parser.add_argument("El", type=str, \
     help=r"Element to display")
 parser.add_argument("Teff", type=float, \
@@ -160,11 +160,15 @@ def load_previous_models(S, M, args):
 if args.model:
     args.wave = 'vac'
 
-SS = [load_spec(f, args) for f in args.fnames.split(',')]
-S = Spectrum.join(SS, sort=True)
+if args.fnames == 'None':
+    x = np.arange(3000, 10000, 0.5)
+    S = Spectrum(x, 0, 0)
+else:
+    SS = [load_spec(f, args) for f in args.fnames.split(',')]
+    S = Spectrum.join(SS, sort=True)
 
-if args.gb:
-    S = S.convolve_gaussian(args.gb)
+    if args.gb:
+        S = S.convolve_gaussian(args.gb)
 
 #Create linelist
 Linedata = np.load(f"{INSTALL_DIR}/linelist.rec.npy")
@@ -234,7 +238,10 @@ else:
         if Mr is not None:
             Mr.plot('C0-', zorder=2)
     plt.xlim(*S.x01)
-    plt.ylim(0, 1.2*np.percentile(S.y, 99))
+    if args.norm == 'unit':
+        plt.ylim(0, 1.2)
+    else:
+        plt.ylim(0, 1.2*np.percentile(S.y, 99))
     plt.xlabel(r"Wavelength [\AA]")
     plt.ylabel(r"Normalised flux")
     plt.tight_layout()
