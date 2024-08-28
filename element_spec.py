@@ -166,8 +166,7 @@ if args.fnames == 'None':
 else:
     SS = [load_spec(f, args) for f in args.fnames.split(',')]
     S = Spectrum.join(SS, sort=True)
-
-    if args.gb:
+    if args.gb > 0:
         S = S.convolve_gaussian(args.gb)
 
 #Create linelist
