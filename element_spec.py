@@ -240,7 +240,7 @@ else:
             Mr.plot('C0-', zorder=2)
     plt.xlim(*S.x01)
     if args.norm == 'unit':
-        plt.ylim(0, 1.2)
+        plt.ylim(0, 1.2*args.scale)
     else:
         plt.ylim(0, 1.2*np.percentile(S.y, 99))
     plt.xlabel(r"Wavelength [\AA]")
