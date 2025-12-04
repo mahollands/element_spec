@@ -8,6 +8,7 @@ import sys
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
 import pandas as pd
 from numba import vectorize, float64
 try:
@@ -18,6 +19,8 @@ except ImportError:
 #If this program is run via a softlink, realpath resolves this, and so the
 #data associated with this program can be located.
 INSTALL_DIR = os.path.dirname(os.path.realpath(__file__))
+
+rcParams['text.usetex'] = False
 
 #..............................................................................
 # Arg parse
@@ -87,8 +90,8 @@ def model_abs(p, x):
     Creates absorption profile from combination of lines
     """
     A, wl = p
-    LL = sum(line_profile(x, linedata, wl) for linedata in Linedata.itertuples())
-    return np.exp(-A*LL)
+    kappa = sum(line_profile(x, linedata, wl) for linedata in Linedata.itertuples())
+    return np.exp(-A*kappa)
 
 def model_em(p, x):
     """
@@ -186,6 +189,7 @@ if not len(Linedata):
     print(*[ion.decode() for ion in all_ions])
     sys.exit()
 
+
 #Only use lines in data range
 validwave = (Linedata['lam'] > S.x[0]) & (Linedata['lam'] < S.x[-1])
 Linedata = Linedata[validwave]
@@ -225,25 +229,27 @@ if args.write:
     outname = f"LTE-{args.El}-{args.Teff:.0f}"
     outname += "_emission.npy" if args.emission else ".npy"
     M.write(outname)
+    syst.exit()
+
+
+#Make plot
+M = normalise(M, S, args)
+plt.figure(figsize=(12, 6))
+S.plot(c='grey', drawstyle='steps-mid', zorder=1)
+if args.emission:
+    (1+M).plot('r-', zorder=3)
 else:
-    #Make plot
-    M = normalise(M, S, args)
-    plt.figure(figsize=(12, 6))
-    S.plot(c='grey', drawstyle='steps-mid', zorder=1)
-    if args.emission:
-        (1+M).plot('r-', zorder=3)
-    else:
-        M.plot('r-', zorder=3)
-    if args.read:
-        Mr = load_previous_models(S, M, args)
-        if Mr is not None:
-            Mr.plot('C0-', zorder=2)
-    plt.xlim(*S.x01)
-    if args.norm == 'unit':
-        plt.ylim(0, 1.2*args.scale)
-    else:
-        plt.ylim(0, 1.2*np.percentile(S.y, 99))
-    plt.xlabel(r"Wavelength [\AA]")
-    plt.ylabel(r"Normalised flux")
-    plt.tight_layout()
-    plt.show()
+    M.plot('r-', zorder=3)
+if args.read:
+    Mr = load_previous_models(S, M, args)
+    if Mr is not None:
+        Mr.plot('C0-', zorder=2)
+plt.xlim(*S.x01)
+if args.norm == 'unit':
+    plt.ylim(0, 1.2*args.scale)
+else:
+    plt.ylim(0, 1.2*np.percentile(S.y, 99))
+plt.xlabel(r"Wavelength [\AA]")
+plt.ylabel(r"Normalised flux")
+plt.tight_layout()
+plt.show()
