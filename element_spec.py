@@ -266,7 +266,7 @@ if args.write:
     outname = f"LTE-{args.El}-{args.Teff:.0f}"
     outname += "_emission.npy" if args.emission else ".npy"
     M.write(outname)
-    syst.exit()
+    sys.exit()
 
 
 # Make plot
