@@ -220,7 +220,7 @@ if args.emission:
 all_ions = np.unique(Linedata["ion"])
 ionmatch = Linedata["ion"] == args.El.encode()
 Linedata = Linedata[ionmatch]
-if not len(Linedata):
+if Linedata.empty:
     print(f"Could not find atomic data for {args.El}")
     print("Available Ions:")
     print(*[ion.decode() for ion in all_ions])
@@ -230,7 +230,7 @@ if not len(Linedata):
 # Only use lines in data range
 validwave = (Linedata["lam"] > S.x[0]) & (Linedata["lam"] < S.x[-1])
 Linedata = Linedata[validwave]
-if not len(Linedata):
+if Linedata.empty:
     print("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, *S.x01))
     sys.exit()
 
