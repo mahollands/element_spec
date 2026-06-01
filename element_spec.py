@@ -203,7 +203,7 @@ if args.model:
     args.wave = "vac"
 
 if args.fnames == "None":
-    x = np.arange(3000, 10000, 0.5)
+    x = np.arange(1000, 10000, 0.5)
     S = Spectrum(x, 0, 0)
 else:
     SS = [load_spec(f, args) for f in args.fnames.split(",")]
