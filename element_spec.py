@@ -46,13 +46,6 @@ parser.add_argument(
 )
 parser.add_argument("-gb", type=float, default=-1.0, help=r"Gaussian blur data [\AA]")
 parser.add_argument(
-    "--norm",
-    type=str,
-    default="unit",
-    choices=["BB", "unit"],
-    help=r"normalisation: BB (def), unit",
-)
-parser.add_argument(
     "--model",
     action="store_const",
     const=True,
@@ -131,22 +124,6 @@ def model_em(p, x):
     return A * LL
 
 
-def normalise(M, S, args):
-    """
-    Normalise absorption profile against input spectrum
-    in some specified way
-    """
-    if args.norm == "BB":
-        BB = Spectrum.BlackBody(args.Teff, M.x, S.x_unit, S.y_unit / u.sr)
-        BB *= np.pi * u.sr
-        BB.wave = args.wave
-        M *= BB
-        M = M.scale_model_to_model(S) if args.model else M.scale_model(S)
-    elif args.norm == "unit":
-        pass
-    else:
-        raise ValueError
-    return M * args.scale
 
 
 # .............................................................................
@@ -197,7 +174,7 @@ def load_previous_models(S, M, args):
     Mr = reduce(operator.mul, MMr_abs, 1) + sum(MMr_em)
 
     assert len(Mr) == len(M), "Length of loaded models does not match data"
-    return normalise(Mr, S, args)
+    return Mr * args.scale
 
 
 # ...........................................................
@@ -273,7 +250,7 @@ if args.write:
 
 
 # Make plot
-M = normalise(M, S, args)
+M *= args.scale
 plt.figure(figsize=(12, 6))
 S.plot(c="grey", drawstyle="steps-mid", zorder=1)
 if args.emission:
