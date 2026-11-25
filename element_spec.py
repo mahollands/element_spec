@@ -9,13 +9,14 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+from astropy import units as u
 import pandas as pd
 from numba import vectorize, float64
 
 try:
-    from mh.spectra import Spectrum, Black_body, vac_to_air
+    from mh.spectra import Spectrum, vac_to_air
 except ImportError:
-    from spectra import Spectrum, Black_body, vac_to_air
+    from spectra import Spectrum, vac_to_air
 
 # If this program is run via a softlink, realpath resolves this, and so the
 # data associated with this program can be located.
@@ -136,7 +137,9 @@ def normalise(M, S, args):
     in some specified way
     """
     if args.norm == "BB":
-        BB = Black_body(M.x, args.Teff, args.wave, S.x_unit, S.y_unit)
+        BB = Spectrum.BlackBody(args.Teff, M.x, S.x_unit, S.y_unit / u.sr)
+        BB *= np.pi * u.sr
+        BB.wave = args.wave
         M *= BB
         M = M.scale_model_to_model(S) if args.model else M.scale_model(S)
     elif args.norm == "unit":
