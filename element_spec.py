@@ -214,11 +214,11 @@ if Linedata.empty:
 if args.emission:
     boltz = np.exp(-beta * Linedata["E_hi"])
     A_ki = Linedata["A_ki"]
-    Linedata["strength"] = A_ki * boltz
+    Linedata["strength"] = A_ki * boltz * (5000/Linedata["lam"])
 else:
     boltz = np.exp(-beta * Linedata["E_low"])
     gf = 10 ** (Linedata["loggf"])
-    Linedata["strength"] = gf * boltz
+    Linedata["strength"] = gf * boltz * (Linedata["lam"]/5000)**2
 Linedata.sort_values("strength", ascending=False, inplace=True)
 Linedata = Linedata[: args.N]
 
