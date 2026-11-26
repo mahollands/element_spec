@@ -34,9 +34,9 @@ def get_args():
         help=r"File with spectral data (type None if no data)",
     )
     parser.add_argument(
-        "El",
+        "Ion",
         type=str,
-        help=r"Element to display",
+        help=r"Ion to display",
     )
     parser.add_argument(
         "Teff",
@@ -218,7 +218,7 @@ def load_previous_models(M, args):
     profiles into a total profile
     """
     flist_abs, flist_em = glob.glob("LTE*[0-9].npy"), glob.glob("LTE*emission.npy")
-    el_prefix = f"LTE-{args.El}-"
+    el_prefix = f"LTE-{args.Ion}-"
 
     if args.emission:
         flist_em = [f for f in flist_em if not f.startswith(el_prefix)]
@@ -243,11 +243,11 @@ def setup_Linedata(S, args):
     Linedata = pd.DataFrame(Linedata)
 
     all_ions = np.unique(Linedata["ion"])
-    ionmatch = Linedata["ion"] == args.El.encode()
+    ionmatch = Linedata["ion"] == args.Ion.encode()
     Linedata = Linedata[ionmatch]
     if Linedata.empty:
         ions = ', '.join(ion.decode() for ion in all_ions)
-        sys.exit(f"No atomic data for {args.El}\nAvailable Ions:\n{ions}")
+        sys.exit(f"No atomic data for {args.Ion}\nAvailable Ions:\n{ions}")
 
 
     # Apply velocity and air shifts to atomic data
@@ -261,7 +261,7 @@ def setup_Linedata(S, args):
     validwave = (Linedata["lam"] > S.x[0]) & (Linedata["lam"] < S.x[-1])
     Linedata = Linedata[validwave]
     if Linedata.empty:
-        sys.exit("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, *S.x01))
+        sys.exit("No {} lines in the range {:.1f} -- {:.1f}A".format(args.Ion, *S.x01))
 
     beta = 1.43877688 / args.Teff # 1/(kb*T) in cm
     # Only use N strongest lines (and set strength column)
@@ -283,7 +283,7 @@ def setup_Linedata(S, args):
 
 def make_figure(S, M, args):
     M *= args.scale
-    plt.figure(figsize=(12, 6))
+    plt.figure(f"{args.Ion} {args.Teff:.0f}K", figsize=(12, 6))
     S.plot(c="grey", drawstyle="steps-mid", zorder=1)
     if args.emission:
         (1 + M).plot("r-", zorder=3)
@@ -309,7 +309,7 @@ if __name__ == "__main__":
     Linedata = setup_Linedata(S, args)
     M = create_model(S, args, Linedata)
     if args.write:
-        outname = f"LTE-{args.El}-{args.Teff:.0f}"
+        outname = f"LTE-{args.Ion}-{args.Teff:.0f}"
         outname += "_emission.npy" if args.emission else ".npy"
         M.write(outname)
     else:
