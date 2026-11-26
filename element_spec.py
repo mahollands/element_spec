@@ -243,9 +243,7 @@ def load_previous_models(M, args):
 def setup_Linedata(args):
     Linedata = np.load(f"{INSTALL_DIR}/linelist.rec.npy")
     Linedata = pd.DataFrame(Linedata)
-    if args.emission:
-        Linedata["E_hi"] = 1e8 / Linedata["lam"] + Linedata["E_low"]
-        Linedata["A_ki"] = 1e8 * 10 ** Linedata["loggf"] / Linedata["lam"] ** 2
+
     all_ions = np.unique(Linedata["ion"])
     ionmatch = Linedata["ion"] == args.El.encode()
     Linedata = Linedata[ionmatch]
@@ -255,25 +253,6 @@ def setup_Linedata(args):
         print(*[ion.decode() for ion in all_ions])
         sys.exit()
 
-    # Only use lines in data range
-    validwave = (Linedata["lam"] > S.x[0]) & (Linedata["lam"] < S.x[-1])
-    Linedata = Linedata[validwave]
-    if Linedata.empty:
-        sys.exit("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, *S.x01))
-
-    beta = 1 / (0.695 * args.Teff) # 1/(kb*T) in cm-1
-    # Only use N strongest lines (and set strength column)
-    if args.emission:
-        boltz = np.exp(-beta * Linedata["E_hi"])
-        A_ki = Linedata["A_ki"]
-        Linedata["strength"] = A_ki * boltz * (5000/Linedata["lam"])
-    else:
-        boltz = np.exp(-beta * Linedata["E_low"])
-        gf = 10 ** (Linedata["loggf"])
-        Linedata["strength"] = gf * boltz * (Linedata["lam"]/5000)**2
-    Linedata.sort_values("strength", ascending=False, inplace=True)
-    Linedata = Linedata[: args.N]
-
     # Apply redshift to atomic data
     beta_v = args.rv / 2.998e5
     Linedata["lam"] *= np.sqrt((1 + beta_v) / (1 - beta_v))
@@ -281,6 +260,26 @@ def setup_Linedata(args):
     # Change to air wavelengths
     if args.wave == "air":
         Linedata["lam"] = vac_to_air(Linedata["lam"])
+
+    # Only use lines in data range
+    validwave = (Linedata["lam"] > S.x[0]) & (Linedata["lam"] < S.x[-1])
+    Linedata = Linedata[validwave]
+    if Linedata.empty:
+        sys.exit("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, *S.x01))
+
+    beta = 1.43877688 / args.Teff # 1/(kb*T) in cm
+    # Only use N strongest lines (and set strength column)
+    if args.emission:
+        E_hi = 1e8 / Linedata["lam"] + Linedata["E_low"]
+        boltz = np.exp(-beta * E_hi)
+        A_ki = 1e8 * 10 ** Linedata["loggf"] / Linedata["lam"] ** 2
+        Linedata["strength"] = A_ki * boltz * (5000/Linedata["lam"])
+    else:
+        boltz = np.exp(-beta * Linedata["E_low"])
+        gf = 10 ** (Linedata["loggf"])
+        Linedata["strength"] = gf * boltz * (Linedata["lam"]/5000)**2
+    Linedata.sort_values("strength", ascending=False, inplace=True)
+    Linedata = Linedata[: args.N]
 
     return Linedata
 
