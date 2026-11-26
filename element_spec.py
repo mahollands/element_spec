@@ -247,8 +247,10 @@ def setup_Linedata(S, args):
         print(f"Could not find atomic data for {args.El}")
         sys.exit(f"Available Ions:\n {[ion.decode() for ion in all_ions]}")
 
+
     # Apply velocity and air shifts to atomic data
     beta_v = args.rv / 2.998e5
+    dE = 1e8 / Linedata["lam"]
     Linedata["lam"] *= np.sqrt((1 + beta_v) / (1 - beta_v))
     if args.wave == "air":
         Linedata["lam"] = vac_to_air(Linedata["lam"])
@@ -260,7 +262,6 @@ def setup_Linedata(S, args):
         sys.exit("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, *S.x01))
 
     beta = 1.43877688 / args.Teff # 1/(kb*T) in cm
-    dE = 1e8 / Linedata["lam"]
     # Only use N strongest lines (and set strength column)
     if args.emission:
         E_hi = Linedata["E_low"] + dE
