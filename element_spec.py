@@ -250,7 +250,7 @@ def setup_Linedata(S, args):
 
     # Apply velocity and air shifts to atomic data
     beta_v = args.rv / 2.998e5
-    dE = 1e8 / Linedata["lam"]
+    Linedata["dE"] = 1e8 / Linedata["lam"]
     Linedata["lam"] *= np.sqrt((1 + beta_v) / (1 - beta_v))
     if args.wave == "air":
         Linedata["lam"] = vac_to_air(Linedata["lam"])
@@ -264,14 +264,14 @@ def setup_Linedata(S, args):
     beta = 1.43877688 / args.Teff # 1/(kb*T) in cm
     # Only use N strongest lines (and set strength column)
     if args.emission:
-        E_hi = Linedata["E_low"] + dE
+        E_hi = Linedata["E_low"] + Linedata["dE"]
         boltz = np.exp(-beta * E_hi)
         A_ki = 10 ** Linedata["loggf"] * (5000/Linedata["lam"])**3
         Linedata["strength"] = A_ki * boltz
     else:
         boltz = np.exp(-beta * Linedata["E_low"])
         gf = 10 ** (Linedata["loggf"])
-        stim = -np.expm1(-beta*dE)
+        stim = -np.expm1(-beta*Linedata["dE"])
         Linedata["strength"] = gf * boltz * stim * (Linedata["lam"]/5000)**2
     Linedata.sort_values("strength", ascending=False, inplace=True)
     Linedata = Linedata[: args.N]
