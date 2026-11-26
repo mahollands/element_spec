@@ -216,21 +216,22 @@ def load_previous_models(M, args):
     profiles into a total profile
     """
     flist_abs, flist_em = glob.glob("LTE*[0-9].npy"), glob.glob("LTE*emission.npy")
+    el_prefix = f"LTE-{args.El}-"
+
+    if args.emission:
+        flist_em = [f for f in flist_em if not f.startswith(el_prefix)]
+    else:
+        flist_abs = [f for f in flist_abs if not f.startswith(el_prefix))
     if not (flist_abs or flist_em):
         return None
 
-    el_prefix = f"LTE-{args.El}-"
     # Load absorption and emission profiles
     load_npy = partial(Spectrum.from_npy, wave=args.wave, y_unit="")
-    if args.emission:
-        MMr_abs = map(load_npy, flist_abs)
-        MMr_em = (load_npy(f) for f in flist_em if not f.startswith(el_prefix))
-    else:
-        MMr_abs = (load_npy(f) for f in flist_abs if not f.startswith(el_prefix))
-        MMr_em = map(load_npy, flist_em)
+    MMr_abs = map(load_npy, flist_abs)
+    MMr_em = map(load_npy, flist_em)
 
     # combime abs and em profiles
-    unit_spec = Spectrum(M.x, 1, 0)
+    unit_spec = Spectrum(M.x, 1, 0, wave=args.wave, y_unit="")
     Mr = reduce(operator.mul, MMr_abs, unit_spec) + sum(MMr_em)
     return Mr * args.scale
 
