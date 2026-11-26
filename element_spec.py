@@ -41,7 +41,8 @@ def get_args():
     parser.add_argument(
         "fnames",
         type=str,
-        help=r"File with spectral data (type None if no data)",
+        nargs="*",
+        help=r"File(s) with spectral data (omit to show the model alone)",
     )
     parser.add_argument(
         "Ion",
@@ -204,11 +205,14 @@ def load_spectra(args):
     """
     Loads the input spectra
     """
-    if args.fnames == "None":
+    if not args.fnames:
         x = np.linspace(1000, 10000, 2)
         S = Spectrum(x, 0, 0)
     else:
-        SS = [load_spec(f, args) for f in args.fnames.split(",")]
+        missing = [f for f in args.fnames if not os.path.isfile(f)]
+        if missing:
+            sys.exit("Could not find file(s): " + ", ".join(missing))
+        SS = [load_spec(f, args) for f in args.fnames]
         S = Spectrum.join(SS, sort=True)
         if args.gb > 0:
             S = S.convolve_gaussian(args.gb)

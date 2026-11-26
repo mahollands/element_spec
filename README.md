@@ -11,7 +11,10 @@ Basic usage looks like
 ```
 element_spec spectrum.dat FeI 7500
 ```
-* Arg1: The filename containing the spectrum you are working with.
+* Arg1: The filename containing the spectrum you are working with. Multiple
+  files can be given (e.g. `element_spec blue.dat red.dat FeI 7500`), and are
+  joined into a single spectrum. Omit the filename(s) to show the model alone
+  (e.g. `element_spec FeI 7500`).
 * Arg2: Ion name
 * Arg3: Effective temperature in Kelvin
 
