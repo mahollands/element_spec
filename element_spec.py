@@ -37,7 +37,7 @@ def get_args():
         "El",
         type=str,
         help=r"Element to display",
-    ),
+    )
     parser.add_argument(
         "Teff",
         type=float,
