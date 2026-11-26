@@ -253,11 +253,9 @@ def setup_Linedata(args):
         print(*[ion.decode() for ion in all_ions])
         sys.exit()
 
-    # Apply redshift to atomic data
+    # Apply velocity and air shifts to atomic data
     beta_v = args.rv / 2.998e5
     Linedata["lam"] *= np.sqrt((1 + beta_v) / (1 - beta_v))
-
-    # Change to air wavelengths
     if args.wave == "air":
         Linedata["lam"] = vac_to_air(Linedata["lam"])
 
@@ -268,16 +266,18 @@ def setup_Linedata(args):
         sys.exit("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, *S.x01))
 
     beta = 1.43877688 / args.Teff # 1/(kb*T) in cm
+    dE = 1e8 / Linedata["lam"]
     # Only use N strongest lines (and set strength column)
     if args.emission:
-        E_hi = 1e8 / Linedata["lam"] + Linedata["E_low"]
+        E_hi = Linedata["E_low"] + dE
         boltz = np.exp(-beta * E_hi)
-        A_ki = 1e8 * 10 ** Linedata["loggf"] / Linedata["lam"] ** 2
-        Linedata["strength"] = A_ki * boltz * (5000/Linedata["lam"])
+        A_ki = 10 ** Linedata["loggf"] * (5000/Linedata["lam"])**3
+        Linedata["strength"] = A_ki * boltz
     else:
         boltz = np.exp(-beta * Linedata["E_low"])
         gf = 10 ** (Linedata["loggf"])
-        Linedata["strength"] = gf * boltz * (Linedata["lam"]/5000)**2
+        stim = -np.expm1(-beta*dE)
+        Linedata["strength"] = gf * boltz * stim * (Linedata["lam"]/5000)**2
     Linedata.sort_values("strength", ascending=False, inplace=True)
     Linedata = Linedata[: args.N]
 
