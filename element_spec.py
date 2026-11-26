@@ -167,7 +167,7 @@ def model_em(p, x, Linedata):
     return A * LL
 
 
-def create_model(args, Linedata):
+def create_model(S, args, Linedata):
     """
     Generate model with lines from specified Ion at specified Teff
     """
@@ -236,7 +236,7 @@ def load_previous_models(M, args):
     return Mr * args.scale
 
 
-def setup_Linedata(args):
+def setup_Linedata(S, args):
     Linedata = np.load(f"{INSTALL_DIR}/linelist.rec.npy")
     Linedata = pd.DataFrame(Linedata)
 
@@ -303,8 +303,8 @@ def make_figure(S, M, args):
 if __name__ == "__main__":
     args = get_args()
     S = load_spectra(args)
-    Linedata = setup_Linedata(args)
-    M = create_model(args, Linedata)
+    Linedata = setup_Linedata(S, args)
+    M = create_model(S, args, Linedata)
     if args.write:
         outname = f"LTE-{args.El}-{args.Teff:.0f}"
         outname += "_emission.npy" if args.emission else ".npy"
