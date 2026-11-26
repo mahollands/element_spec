@@ -221,7 +221,7 @@ def load_previous_models(M, args):
     if args.emission:
         flist_em = [f for f in flist_em if not f.startswith(el_prefix)]
     else:
-        flist_abs = [f for f in flist_abs if not f.startswith(el_prefix))
+        flist_abs = [f for f in flist_abs if not f.startswith(el_prefix)]
     if not (flist_abs or flist_em):
         return None
 
@@ -245,9 +245,7 @@ def setup_Linedata(args):
     Linedata = Linedata[ionmatch]
     if Linedata.empty:
         print(f"Could not find atomic data for {args.El}")
-        print("Available Ions:")
-        print(*[ion.decode() for ion in all_ions])
-        sys.exit()
+        sys.exit(f"Available Ions:\n {[ion.decode() for ion in all_ions]}")
 
     # Apply velocity and air shifts to atomic data
     beta_v = args.rv / 2.998e5
