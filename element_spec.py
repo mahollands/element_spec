@@ -137,7 +137,7 @@ def lorentzian(x, x0, w):
     xx = 2 * (x - x0) / w
     if abs(xx) > 20:
         return 0
-    return 1 / (np.pi * w * (1 + xx * xx))
+    return 2 / (np.pi * w * (1 + xx * xx))
 
 
 # @jit(nopython=True, cache=True)
