@@ -79,6 +79,12 @@ def get_args():
         help=r"Gaussian blur data [\AA]",
     )
     parser.add_argument(
+        "-dx",
+        type=float,
+        default=0.1,
+        help=r"Wavelength sampling for model spectrum [\AA]",
+    )
+    parser.add_argument(
         "--model",
         action="store_const",
         const=True,
@@ -120,6 +126,8 @@ def get_args():
     args = parser.parse_args()
     if args.model:
         args.wave = "vac"
+    if args.wl < 3*args.dx:
+        raise ValueError("Lines will be undersampled: Increase wl/decrease dx"
     return args
 
 ###############################################################################
@@ -168,7 +176,7 @@ def create_model(args, Linedata):
     """
     Generate model with lines from specified Ion at specified Teff
     """
-    xm = np.arange(*S.x01, 0.1)
+    xm = np.arange(*S.x01, args.dx)
     model_fun = model_em if args.emission else model_abs
     ym = model_fun((args.Au, args.wl), xm, Linedata)
     M = Spectrum(xm, ym, 0, wave=args.wave, y_unit="")
