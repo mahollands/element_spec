@@ -9,7 +9,6 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
-from astropy import units as u
 import pandas as pd
 from numba import vectorize, float64
 
@@ -24,7 +23,7 @@ INSTALL_DIR = os.path.dirname(os.path.realpath(__file__))
 
 rcParams["text.usetex"] = False
 
-# ..............................................................................
+###############################################################################
 # Arg parse
 
 def get_args():
@@ -123,7 +122,7 @@ def get_args():
         args.wave = "vac"
     return args
 
-# .............................................................................
+###############################################################################
 # methods
 
 
@@ -177,7 +176,7 @@ def create_model(args, Linedata):
     M += 1e-300  # Needed to deal with numerical issues with very strong lines after convolution
     return M
 
-# .............................................................................
+###############################################################################
 
 def load_spec(fname, args):
     """
@@ -298,7 +297,7 @@ def make_figure(S, M, args):
     plt.show()
 
 
-# ...........................................................
+###############################################################################
 
 if __name__ == "__main__":
     args = get_args()

@@ -3,7 +3,7 @@ This tool is designed for quickly identifying which elements (or more
 specifically which ions) are present in a spectrum.
 
 ### Requirements
-* Usual data-analysis modules (numpy, scipy, matplotlib)
+* Usual data-analysis modules (numpy, scipy, matplotlib, pandas, numba)
 * mh.spectra -- another repo of mine for working with astrophysical spectra
 
 ### Examples
