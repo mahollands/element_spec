@@ -122,7 +122,7 @@ def get_args():
     if args.model:
         args.wave = "vac"
     if args.wl/10000 < 2 * args.dx/2.998e5:
-        raise parser.error("Lines may be undersampled: Increase wl/decrease dx")
+        parser.error("Lines may be undersampled: Increase wl/decrease dx")
     return args
 
 ###############################################################################
