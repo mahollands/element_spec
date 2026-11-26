@@ -86,14 +86,12 @@ def get_args():
     )
     parser.add_argument(
         "--model",
-        action="store_const",
-        const=True,
+        action="store_true",
         help=r"model: use if the input a model (doesn't have errors)",
     )
     parser.add_argument(
         "--emission",
-        action="store_const",
-        const=True,
+        action="store_true",
         help=r"emission: use to specify emission lines",
     )
     parser.add_argument(
@@ -111,23 +109,20 @@ def get_args():
     )
     parser.add_argument(
         "--write",
-        action="store_const",
-        const=True,
+        action="store_true",
         help=r"Write 'model' to disk",
     )
     parser.add_argument(
         "--noread",
         dest="read",
-        action="store_const",
-        const=False,
-        default=True,
+        action="store_false",
         help="Ignore disk models",
     )
     args = parser.parse_args()
     if args.model:
         args.wave = "vac"
     if args.wl < 3*args.dx:
-        raise ValueError("Lines will be undersampled: Increase wl/decrease dx"
+        raise ValueError("Lines will be undersampled: Increase wl/decrease dx")
     return args
 
 ###############################################################################
