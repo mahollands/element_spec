@@ -244,8 +244,8 @@ def setup_Linedata(S, args):
     ionmatch = Linedata["ion"] == args.El.encode()
     Linedata = Linedata[ionmatch]
     if Linedata.empty:
-        print(f"Could not find atomic data for {args.El}")
-        sys.exit(f"Available Ions:\n {[ion.decode() for ion in all_ions]}")
+        ions = ', '.join(ion.decode() for ion in all_ions)
+        sys.exit(f"No atomic data for {args.El}\nAvailable Ions:\n{ions}")
 
 
     # Apply velocity and air shifts to atomic data
