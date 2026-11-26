@@ -121,8 +121,6 @@ def get_args():
     args = parser.parse_args()
     if args.model:
         args.wave = "vac"
-    if args.wl/10000 < 2 * args.dx/2.998e5:
-        parser.error("Lines may be undersampled: Increase wl/decrease dx")
     return args
 
 ###############################################################################
@@ -171,6 +169,10 @@ def create_model(S, args, Linedata):
     """
     Generate model with lines from specified Ion at specified Teff
     """
+    min_line_width = args.wl * (S.x[0]/5000)**2
+    min_lam_step = args.dx/2.998e5 * S.x[0]
+    if min_line_width < 2 * min_lam_step:
+        raise ValueError("Lines may be undersampled: Increase wl/decrease dx")
     xm = logarange(*S.x01, 2.998e5/args.dx)
     model_fun = model_em if args.emission else model_abs
     ym = model_fun((args.Au, args.wl), xm, Linedata)
