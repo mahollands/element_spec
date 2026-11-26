@@ -191,7 +191,7 @@ def load_spec(fname, args):
         S = Spectrum.from_dk(fname)
     else:
         S = Spectrum.from_txt(fname, model=True)
-    S.e = np.abs(M.y / 100)
+    S.e = np.abs(S.y / 100)
     return S
 
 
