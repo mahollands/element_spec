@@ -64,25 +64,25 @@ def get_args():
         "--res",
         type=float,
         default=2.0,
-        help=r"Model resolution [\AA] (default=2.0)",
+        help=r"Model resolution [Å] (default=2.0)",
     )
     parser.add_argument(
         "-wl",
         type=float,
         default=0.5,
-        help=r"Lorentzian width [\AA] (default=0.5)",
+        help=r"Lorentzian width [Å] at a reference wavelength of 5000 Å (default=0.5)",
     )
     parser.add_argument(
         "-gb",
         type=float,
         default=-1.0,
-        help=r"Gaussian blur data [\AA]",
+        help=r"Gaussian blur data [Å]",
     )
     parser.add_argument(
         "-dx",
         type=float,
         default=0.1,
-        help=r"Wavelength sampling for model spectrum [\AA]",
+        help=r"Wavelength sampling for model spectrum [Å]",
     )
     parser.add_argument(
         "--model",
@@ -293,7 +293,7 @@ def make_figure(S, M, args):
             Mr.plot("C0-", zorder=2)
     plt.xlim(*S.x01)
     plt.ylim(0, 1.2 * args.scale)
-    plt.xlabel(r"Wavelength [\AA]")
+    plt.xlabel(r"Wavelength [Å]")
     plt.ylabel(r"Normalised flux")
     plt.tight_layout()
     plt.show()
