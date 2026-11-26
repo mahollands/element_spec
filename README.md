@@ -21,6 +21,7 @@ spectrum is redshifed by 50km/s, you can use
 ```
 element_spec  spectrum.dat FeI 7500 1 -rv=50
 ```
+See other options with `-h` or `--help`.
 
 If you think a model looks like a good approximation, you can save it for next time
 ```
