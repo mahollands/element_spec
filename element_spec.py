@@ -170,10 +170,8 @@ def create_model(S, args, Linedata):
     Generate model with lines from specified Ion at specified Teff
     """
     min_line_width = args.wl * (S.x[0]/5000)**2
-    min_lam_step = args.dx/2.998e5 * S.x[0]
-    if min_line_width < 2 * min_lam_step:
-        raise ValueError("Lines may be undersampled: Increase wl/decrease dx")
-    xm = logarange(*S.x01, 2.998e5/args.dx)
+    dx = min(args.dx, 2.998e5 * min_line_width / (2*S.x[0]))
+    xm = logarange(*S.x01, 2.998e5/dx)
     model_fun = model_em if args.emission else model_abs
     ym = model_fun((args.Au, args.wl), xm, Linedata)
     M = Spectrum(xm, ym, 0, wave=args.wave, y_unit="")
@@ -202,7 +200,7 @@ def load_spectra(args):
     Loads the input spectra
     """
     if args.fnames == "None":
-        x = np.arange(1000, 10000, 0.5)
+        x = np.linspace(1000, 10000, 2)
         S = Spectrum(x, 0, 0)
     else:
         SS = [load_spec(f, args) for f in args.fnames.split(",")]
