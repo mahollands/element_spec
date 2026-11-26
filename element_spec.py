@@ -145,7 +145,7 @@ def line_profile(x, linedata, wl):
     """
     Creates line profile for a single line
     """
-    V = lorentzian(x, linedata.lam, wl)
+    V = lorentzian(x, linedata.lam, wl*(linedata.lam/5000)**2)
     return linedata.strength * V
 
 
