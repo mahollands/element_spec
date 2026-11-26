@@ -13,9 +13,9 @@ import pandas as pd
 from numba import vectorize, float64
 
 try:
-    from mh.spectra import Spectrum, vac_to_air
+    from mh.spectra import Spectrum, vac_to_air, logarange
 except ImportError:
-    from spectra import Spectrum, vac_to_air
+    from spectra import Spectrum, vac_to_air, logarange
 
 # If this program is run via a softlink, realpath resolves this, and so the
 # data associated with this program can be located.
@@ -81,8 +81,8 @@ def get_args():
     parser.add_argument(
         "-dx",
         type=float,
-        default=0.1,
-        help=r"Wavelength sampling for model spectrum [Å]",
+        default=5.0,
+        help=r"Log-wavelength sampling for model spectrum [km/s]",
     )
     parser.add_argument(
         "--model",
@@ -121,8 +121,8 @@ def get_args():
     args = parser.parse_args()
     if args.model:
         args.wave = "vac"
-    if args.wl < 3*args.dx:
-        raise ValueError("Lines will be undersampled: Increase wl/decrease dx")
+    if args.wl/10000 < 2 * args.dx/2.998e5:
+        raise parser.error("Lines may be undersampled: Increase wl/decrease dx")
     return args
 
 ###############################################################################
@@ -171,7 +171,7 @@ def create_model(S, args, Linedata):
     """
     Generate model with lines from specified Ion at specified Teff
     """
-    xm = np.arange(*S.x01, args.dx)
+    xm = logarange(*S.x01, 2.998e5/args.dx)
     model_fun = model_em if args.emission else model_abs
     ym = model_fun((args.Au, args.wl), xm, Linedata)
     M = Spectrum(xm, ym, 0, wave=args.wave, y_unit="")
