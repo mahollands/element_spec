@@ -227,13 +227,13 @@ def load_previous_models(M, args):
 
     # Load absorption and emission profiles
     load_npy = partial(Spectrum.from_npy, wave=args.wave, y_unit="")
-    MMr_abs = map(load_npy, flist_abs)
-    MMr_em = map(load_npy, flist_em)
+    MM_prev_abs = map(load_npy, flist_abs)
+    MM_prev_em = map(load_npy, flist_em)
 
     # combime abs and em profiles
     unit_spec = Spectrum(M.x, 1, 0, wave=args.wave, y_unit="")
-    Mr = reduce(operator.mul, MMr_abs, unit_spec) + sum(MMr_em)
-    return Mr * args.scale
+    M_prev = reduce(operator.mul, MM_prev_abs, unit_spec) + sum(MM_prev_em)
+    return M_prev * args.scale
 
 
 def setup_Linedata(S, args):
@@ -288,9 +288,9 @@ def make_figure(S, M, args):
     else:
         M.plot("r-", zorder=3)
     if args.read:
-        Mr = load_previous_models(M, args)
-        if Mr is not None:
-            Mr.plot("C0-", zorder=2)
+        M_prev = load_previous_models(M, args)
+        if M_prev is not None:
+            M_prev.plot("C0-", zorder=2)
     plt.xlim(*S.x01)
     plt.ylim(0, 1.2 * args.scale)
     plt.xlabel(r"Wavelength [Å]")
