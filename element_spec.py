@@ -152,7 +152,7 @@ def load_spec(fname, args):
         sys.exit()
 
 
-def load_previous_models(S, M, args):
+def load_previous_models(M, args):
     """
     Load and combine previously generated absorption
     profiles into a total profile
@@ -171,9 +171,8 @@ def load_previous_models(S, M, args):
         MMr_em = map(load_npy, flist_em)
 
     # combime abs and em profiles
-    Mr = reduce(operator.mul, MMr_abs, 1) + sum(MMr_em)
-
-    assert len(Mr) == len(M), "Length of loaded models does not match data"
+    unit_spec = Spectrum(M.x, 1, 0)
+    Mr = reduce(operator.mul, MMr_abs, unit_spec) + sum(MMr_em)
     return Mr * args.scale
 
 
@@ -258,7 +257,7 @@ if args.emission:
 else:
     M.plot("r-", zorder=3)
 if args.read:
-    Mr = load_previous_models(S, M, args)
+    Mr = load_previous_models(M, args)
     if Mr is not None:
         Mr.plot("C0-", zorder=2)
 plt.xlim(*S.x01)
