@@ -183,20 +183,14 @@ def load_spec(fname, args):
     """
     Loads an input spectrum
     """
-    try:
-        if args.model:
-            M = (
-                Spectrum.from_dk(fname)
-                if fname.endswith(".dk")
-                else Spectrum.from_txt(fname, model=True)
-            )
-            M.e = np.abs(M.y / 100)
-            return M
+    if not args.model:
         return Spectrum.from_txt(fname, wave=args.wave)
-    except IOError:
-        sys.exit(f"Could not find file: {fname}")
-    except ValueError:
-        sys.exit(f"Could not parse file: {fname}")
+    if fname.endswith(".dk"):
+        S = Spectrum.from_dk(fname)
+    else:
+        S = Spectrum.from_txt(fname, model=True)
+    S.e = np.abs(M.y / 100)
+    return S
 
 
 def load_spectra(args):
