@@ -145,11 +145,9 @@ def load_spec(fname, args):
             return M
         return Spectrum.from_txt(fname, wave=args.wave)
     except IOError:
-        print(f"Could not find file: {fname}")
-        sys.exit()
+        sys.exit(f"Could not find file: {fname}")
     except ValueError:
-        print(f"Could not parse file: {fname}")
-        sys.exit()
+        sys.exit(f"Could not parse file: {fname}")
 
 
 def load_previous_models(M, args):
@@ -210,8 +208,7 @@ if Linedata.empty:
 validwave = (Linedata["lam"] > S.x[0]) & (Linedata["lam"] < S.x[-1])
 Linedata = Linedata[validwave]
 if Linedata.empty:
-    print("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, *S.x01))
-    sys.exit()
+    sys.exit("No {} lines in the range {:.1f} -- {:.1f}A".format(args.El, *S.x01))
 
 # Only use N strongest lines (and set strength column)
 if args.emission:
@@ -245,7 +242,7 @@ if args.write:
     outname = f"LTE-{args.El}-{args.Teff:.0f}"
     outname += "_emission.npy" if args.emission else ".npy"
     M.write(outname)
-    sys.exit()
+    sys.exit(f"{outname} written to disk")
 
 
 # Make plot
