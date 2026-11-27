@@ -18,7 +18,4 @@ NO_DATA_RANGE = (1000.0, 10000.0)
 # Abundance slider (log10 scale)
 LOGA_MIN, LOGA_MAX, LOGA_INIT, LOGA_STEP = -5.0, 10.0, 0.0, 0.05
 
-# [s] Models slower than this only update when the slider is released
-LIVE_UPDATE_MAX_TIME = 0.2
-
 DEFAULT_SESSION = "element_spec_session.json"

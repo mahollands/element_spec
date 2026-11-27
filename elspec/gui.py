@@ -5,6 +5,7 @@ global and per-ion parameters and the saved ion set.
 """
 import os.path
 import sys
+import threading
 import time
 from dataclasses import asdict
 
@@ -21,16 +22,17 @@ from matplotlib.backends.backend_qtagg import (
 )
 from matplotlib.figure import Figure
 
-from .constants import (
-    LOGA_MIN, LOGA_MAX, LOGA_INIT, LOGA_STEP, LIVE_UPDATE_MAX_TIME,
-)
-from .linelist import available_ions, ModelError
+from .constants import LOGA_MIN, LOGA_MAX, LOGA_INIT, LOGA_STEP
+from .jobs import ModelJob
+from .linelist import available_ions
 from .model import IonModel, GlobalParams, combine_models
 from .params import GLOBAL_PARAMS, ION_PARAMS, WAVE_OPTIONS
 from .session import write_session
 
 Qt = QtCore.Qt
 PANEL_WIDTH = 290
+JOB_POLL_MS = 10  # How often to check whether a background job has finished
+BUSY_MESSAGE_DELAY = 0.3  # [s] Show "Computing..." for jobs slower than this
 
 
 def make_spin(spec, value):
@@ -105,12 +107,6 @@ class AbundanceControl(QtWidgets.QWidget):
             self.spin.setValue(logA)
             self.slider.setValue(round((logA - LOGA_MIN) / LOGA_STEP))
 
-    def set_live(self, live):
-        """
-        If not live, the slider only reports changes when released
-        """
-        self.slider.setTracking(live)
-
     def _changed(self, logA):
         self.set_value(logA)
         self.on_change(self.value())
@@ -121,7 +117,14 @@ class ElementSpecWindow(QtWidgets.QMainWindow):
     Main window. S is the (joined) data spectrum, initial the starting
     parameter values, saved the list of saved IonModels, and session_file
     where they are stored.
+
+    Models are computed in a background thread, one job at a time. Changes
+    made while a job is running are collected into a single follow-up job, so
+    rapid changes (e.g. dragging the slider) never queue up.
     """
+    # Set False to compute in the GUI thread (e.g. for testing/debugging)
+    run_in_background = True
+
     def __init__(self, S, has_data, initial, saved, session_file):
         super().__init__()
         self.setWindowTitle("element_spec")
@@ -132,7 +135,14 @@ class ElementSpecWindow(QtWidgets.QMainWindow):
         self.initial = initial
 
         self.current = self._initial_ion(initial)  # The ion being edited (red)
-        self.M = None  # Its model
+        self.M = None  # Its most recently drawn model
+
+        self._job = None  # The running ModelJob
+        self._job_started = 0.0
+        self._job_pending = False  # Whether another job is needed after it
+        self._job_timer = QtCore.QTimer(self)
+        self._job_timer.setInterval(JOB_POLL_MS)
+        self._job_timer.timeout.connect(self._check_job)
 
         central = QtWidgets.QWidget()
         self.setCentralWidget(central)
@@ -350,64 +360,85 @@ class ElementSpecWindow(QtWidgets.QMainWindow):
     # .........................................................................
     # Models
 
+    @property
+    def busy(self):
+        """
+        Whether models are being computed (or are due to be)
+        """
+        return self._job is not None or self._job_pending
+
     def update_models(self):
         """
-        Recompute (where needed) and redraw the current and saved models
+        Recompute (where needed) and redraw the current and saved models.
+        If a job is already running, another follows it with the parameters
+        as they are then.
         """
-        QtWidgets.QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        t0 = time.perf_counter()
-        try:
-            g, scale = self.global_params()
-            messages = [self._update_current(g, scale)]
-            messages += self._update_combined(g, scale)
-            messages.append(f"{time.perf_counter() - t0:.2f} s")
-            self.status.showMessage(" | ".join(messages))
-        finally:
-            QtWidgets.QApplication.restoreOverrideCursor()
+        self._job_pending = True
+        if self._job is None:
+            self._start_job()
+
+    def _start_job(self):
+        self._job_pending = False
+        g, _ = self.global_params()
+        saved = [im for im in self.saved
+                 if im.include and im.key != self.current.key]
+        self._job = ModelJob(self.current, saved, self.S.x01, g)
+        self._job_started = time.perf_counter()
+        if self.run_in_background:
+            threading.Thread(target=self._job.run, daemon=True).start()
+            self._job_timer.start()
+        else:
+            self._job.run()
+            self._finish_job()
+
+    def _check_job(self):
+        if self._job.done.is_set():
+            self._job_timer.stop()
+            self._finish_job()
+        elif time.perf_counter() - self._job_started > BUSY_MESSAGE_DELAY:
+            self.status.showMessage("Computing...")
+
+    def _finish_job(self):
+        job, self._job = self._job, None
+        if job.error is not None:
+            print(job.error, file=sys.stderr)
+            self.status.showMessage(
+                "Model calculation failed: " + job.error.strip().splitlines()[-1])
+        else:
+            job.adopt_caches()
+            self._draw(job.result)
+        # Results are drawn even if parameters have since changed, which gives
+        # feedback during e.g. slider drags; the follow-up job catches up.
+        if self._job_pending:
+            self._start_job()
+
+    def _draw(self, result):
+        """
+        Show a ModelResult: the current ion in red, the saved ions combined
+        in blue
+        """
+        _, scale = self.global_params()
+        M = self.M = result.M
+        if M is not None:
+            y = M.y * scale
+            self.model_line.set_data(M.x, 1 + y if result.current.emission else y)
+            messages = [f"{result.current.label}: {result.current.n_lines} lines, "
+                        f"{len(M)} px"]
+        else:
+            messages = [result.current_error]
+        self.model_line.set_visible(M is not None and self.show_current.isChecked())
+        self.save_button.setEnabled(M is not None)
+
+        if result.combined:
+            x = M.x if M is not None else result.combined[0][1].x
+            self.combined_line.set_data(x, combine_models(result.combined, x) * scale)
+        self.combined_line.set_visible(bool(result.combined))
+
+        messages += [f"{label} has no lines in range" for label in result.skipped]
+        messages.append(f"{len(result.combined)} saved ions shown")
+        messages.append(f"{result.elapsed:.2f} s")
+        self.status.showMessage(" | ".join(messages))
         self.canvas.draw_idle()
-
-    def _update_current(self, g, scale):
-        """
-        Update the red model. Returns a status message.
-        """
-        try:
-            self.M = self.current.model(self.S.x01, g)
-            message = (f"{self.current.label}: {self.current.n_lines} lines, "
-                       f"{len(self.M)} px")
-            # Slow models only update when the slider is released
-            self.abundance.set_live(
-                self.current.last_model_time < LIVE_UPDATE_MAX_TIME)
-        except ModelError as err:
-            self.M = None
-            message = str(err)
-        if self.M is not None:
-            y = self.M.y * scale
-            self.model_line.set_data(self.M.x, 1 + y if self.current.emission else y)
-        self.model_line.set_visible(
-            self.M is not None and self.show_current.isChecked())
-        self.save_button.setEnabled(self.M is not None)
-        return message
-
-    def _update_combined(self, g, scale):
-        """
-        Update the blue model from the ticked saved ions, excluding the one
-        being edited (shown in red). Returns status messages.
-        """
-        messages = []
-        included = []
-        for im in self.saved:
-            if not im.include or im.key == self.current.key:
-                continue
-            try:
-                included.append((im, im.model(self.S.x01, g)))
-            except ModelError:
-                messages.append(f"{im.label} has no lines in range")
-        if included:
-            x = self.M.x if self.M is not None else included[0][1].x
-            self.combined_line.set_data(x, combine_models(included, x) * scale)
-        self.combined_line.set_visible(bool(included))
-        messages.append(f"{len(included)} saved ions shown")
-        return messages
 
     # .........................................................................
     # Saved ions
@@ -495,6 +526,9 @@ class ElementSpecWindow(QtWidgets.QMainWindow):
         write_session(self.session_file, {**asdict(g), "scale": scale}, self.saved)
 
     def closeEvent(self, event):
+        # Any running job is abandoned (its thread is a daemon)
+        self._job_timer.stop()
+        self._job_pending = False
         # Keep the global parameters for next time, but don't create a
         # session file if nothing was ever saved
         if self.saved or os.path.exists(self.session_file):

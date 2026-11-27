@@ -9,7 +9,6 @@ the parameters it depends on change:
     model    ModelBuilder(logA)  + logA
 """
 import copy
-import time
 from dataclasses import dataclass
 
 import numpy as np
@@ -33,13 +32,18 @@ class GlobalParams:
     wave: str
 
 
+# Lorentzian profiles are truncated beyond this many FWHM from line centre
+LORENTZ_CUTOFF_FWHM = 10.0
+
+
 @vectorize([float64(float64, float64, float64)], cache=True)
 def lorentzian(x, x0, w):
     """
-    Unit-normed Lorentzian profile. w=FWHM. Truncated beyond 10 FWHM.
+    Unit-normed Lorentzian profile. w=FWHM. Truncated beyond
+    LORENTZ_CUTOFF_FWHM.
     """
     xx = 2 * (x - x0) / w
-    if abs(xx) > 20:
+    if abs(xx) > 2 * LORENTZ_CUTOFF_FWHM:
         return 0
     return 2 / (np.pi * w * (1 + xx * xx))
 
@@ -57,14 +61,27 @@ def compute_opacity(x01, lines, wl, dx):
     spanning x01. The grid step is dx [km/s], reduced if needed so the
     narrowest lines (at the blue end) have at least 2 pixels per FWHM.
     Returns (wavelengths, opacity).
+
+    Each profile is only evaluated over the pixels within its truncation
+    window, rather than the whole grid. Lines are added in order, so the
+    result is identical to summing full-grid profiles.
     """
     x0, x1 = x01
     dx = min(dx, C_KMS * line_width(x0, wl) / (2 * x0))
     xm = logarange(x0, x1, C_KMS / dx)
-    kappa = sum(
-        line.strength * lorentzian(xm, line.lam, line_width(line.lam, wl))
-        for line in lines.itertuples()
-    )
+
+    lam = lines["lam"].to_numpy(dtype=float) if len(lines) else np.empty(0)
+    strength = lines["strength"].to_numpy(dtype=float) if len(lines) else np.empty(0)
+    width = line_width(lam, wl)
+    half_window = LORENTZ_CUTOFF_FWHM * width
+    # One pixel of margin either side: lorentzian() itself zeroes anything
+    # beyond the cutoff, so the window only needs to cover it.
+    i0 = np.maximum(np.searchsorted(xm, lam - half_window) - 1, 0)
+    i1 = np.minimum(np.searchsorted(xm, lam + half_window, side="right") + 1, len(xm))
+
+    kappa = np.zeros_like(xm)
+    for lam_k, w_k, s_k, a, b in zip(lam, width, strength, i0, i1):
+        kappa[a:b] += s_k * lorentzian(xm[a:b], lam_k, w_k)
     return xm, kappa
 
 
@@ -117,7 +134,6 @@ class IonModel:
         self.include = include  # Whether shown, for ions in the saved set
         self._keys = {}
         self._cache = {}
-        self.last_model_time = 0.0
 
     @property
     def key(self):
@@ -152,6 +168,15 @@ class IonModel:
         new._keys = dict(self._keys)
         new._cache = dict(self._cache)
         return new
+
+    def adopt_cache(self, other):
+        """
+        Take over the cached results of another IonModel (typically a copy of
+        this one that was computed elsewhere). The cache is keyed by the
+        parameters used, so this is valid whatever this ion's parameters are.
+        """
+        self._keys = other._keys
+        self._cache = other._cache
 
     def _stale(self, stage, key):
         """
@@ -194,9 +219,7 @@ class IonModel:
             self._cache["builder"] = ModelBuilder(
                 *self._cache["opacity"], g.res, self.emission)
         if self._stale("model", k_model):
-            t0 = time.perf_counter()
             self._cache["model"] = self._cache["builder"](self.logA)
-            self.last_model_time = time.perf_counter() - t0
         return self._cache["model"]
 
 
