@@ -11,6 +11,7 @@ LINELIST_PATH = os.path.join(INSTALL_DIR, "linelist.rec.npy")
 C_KMS = 2.998e5  # Speed of light [km/s]
 HC_OVER_K = 1.43877688  # hc/k_B [cm K], i.e. 1/(k_B T) [cm] = HC_OVER_K / T
 LAMBDA_REF = 5000.0  # Reference wavelength [Å] for line widths and strengths
+EV_TO_INV_CM = 8065.54  # Energy conversion used for the line list [cm-1/eV]
 
 # Wavelength range [Å] used when no data are given
 NO_DATA_RANGE = (1000.0, 10000.0)

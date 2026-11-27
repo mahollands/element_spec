@@ -151,6 +151,16 @@ class IonModel:
     def n_lines(self):
         return len(self._cache.get("lines", ()))
 
+    @property
+    def lines(self):
+        """
+        The selected lines (DataFrame, see select_lines) from the last
+        successful model calculation, or None
+        """
+        if "lines" not in self._keys or self._cache.get("error") is not None:
+            return None
+        return self._cache["lines"]
+
     def to_dict(self):
         d = {name: getattr(self, name) for name in self.PARAMS}
         d["include"] = self.include

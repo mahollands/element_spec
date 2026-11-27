@@ -34,7 +34,10 @@ ions (blue):
 * **Current ion**: the ion (type to search), absorption or emission, Lorentzian
   width and number of lines used, plus the abundance slider below the plot
   (log scale, in arbitrary units). *Save to ion set* adds the ion to the saved
-  ions, or updates it if already saved.
+  ions, or updates it if already saved. With *Mark lines* on, the current
+  ion's visible lines are marked with ticks above the spectrum; hover near a
+  feature for the wavelength (and rest wavelength if shifted), log gf and
+  lower level energy of the lines forming it.
 * **Saved ions**: tick to include each in the blue model; *Edit* (or
   double-click) loads one back for adjustment; *Remove* deletes it.
 
@@ -66,6 +69,8 @@ anywhere). The code is in the `elspec` package beside it:
 | `data.py` | Loading the observed spectra |
 | `linelist.py` | The atomic line list; selecting and weighting an ion's lines |
 | `model.py` | Line opacity, model spectra, and per-ion caching of each stage |
+| `jobs.py` | Model calculations as self-contained jobs (run in a background thread) |
+| `lineid.py` | Which of an ion's lines are visible, where to mark them, tooltip text |
 | `session.py` | Reading/writing the session file |
 | `app.py` | Command line and start-up |
 | `gui.py` | The Qt window |

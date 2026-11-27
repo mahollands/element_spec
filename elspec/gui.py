@@ -20,10 +20,12 @@ from matplotlib.backends.backend_qtagg import (
     FigureCanvasQTAgg,
     NavigationToolbar2QT,
 )
+from matplotlib.collections import LineCollection
 from matplotlib.figure import Figure
 
 from .constants import LOGA_MIN, LOGA_MAX, LOGA_INIT, LOGA_STEP
 from .jobs import ModelJob
+from .lineid import visible_lines, mark_positions, lines_near, describe_lines
 from .linelist import available_ions
 from .model import IonModel, GlobalParams, combine_models
 from .params import GLOBAL_PARAMS, ION_PARAMS, WAVE_OPTIONS
@@ -33,6 +35,8 @@ Qt = QtCore.Qt
 PANEL_WIDTH = 290
 JOB_POLL_MS = 10  # How often to check whether a background job has finished
 BUSY_MESSAGE_DELAY = 0.3  # [s] Show "Computing..." for jobs slower than this
+MARK_Y = (0.93, 0.985)  # Vertical extent of line marks [axes fraction]
+HOVER_PIXELS = 6  # Lines within this many pixels of the cursor are described
 
 
 def make_spin(spec, value):
@@ -136,6 +140,7 @@ class ElementSpecWindow(QtWidgets.QMainWindow):
 
         self.current = self._initial_ion(initial)  # The ion being edited (red)
         self.M = None  # Its most recently drawn model
+        self._hover = None  # Visible lines of the drawn model, for tooltips
 
         self._job = None  # The running ModelJob
         self._job_started = 0.0
@@ -193,6 +198,12 @@ class ElementSpecWindow(QtWidgets.QMainWindow):
                          zorder=1)
         (self.combined_line,) = self.ax.plot([], [], "C0-", zorder=2)
         (self.model_line,) = self.ax.plot([], [], "r-", zorder=3)
+        # Marks for the current ion's lines: x in data, y in axes coordinates
+        self.line_marks = LineCollection(
+            [], colors="r", linewidths=1, zorder=4,
+            transform=self.ax.get_xaxis_transform())
+        self.ax.add_collection(self.line_marks, autolim=False)
+        self.canvas.mpl_connect("motion_notify_event", self._on_hover)
         self.ax.set_xlabel(r"Wavelength [Å]")
         self.ax.set_ylabel(r"Normalised flux")
         self.ax.set_xlim(*self.S.x01)
@@ -256,6 +267,14 @@ class ElementSpecWindow(QtWidgets.QMainWindow):
         self.show_current.setChecked(True)
         self.show_current.toggled.connect(lambda _: self.update_models())
         form.addRow(self.show_current)
+
+        self.mark_lines = QtWidgets.QCheckBox("Mark lines")
+        self.mark_lines.setChecked(True)
+        self.mark_lines.setToolTip(
+            "Mark the current ion's visible lines; hover near a line for its "
+            "wavelength, log gf and lower energy")
+        self.mark_lines.toggled.connect(lambda _: self._show_marks())
+        form.addRow(self.mark_lines)
 
         self.save_button = QtWidgets.QPushButton("Save to ion set")
         self.save_button.setToolTip(
@@ -428,6 +447,7 @@ class ElementSpecWindow(QtWidgets.QMainWindow):
             messages = [result.current_error]
         self.model_line.set_visible(M is not None and self.show_current.isChecked())
         self.save_button.setEnabled(M is not None)
+        self._set_marks(result)
 
         if result.combined:
             x = M.x if M is not None else result.combined[0][1].x
@@ -439,6 +459,51 @@ class ElementSpecWindow(QtWidgets.QMainWindow):
         messages.append(f"{result.elapsed:.2f} s")
         self.status.showMessage(" | ".join(messages))
         self.canvas.draw_idle()
+
+    # .........................................................................
+    # Line marks and tooltips
+
+    def _set_marks(self, result):
+        """
+        Mark the visible lines of the current ion's model, and keep them for
+        hover tooltips
+        """
+        im, M, g = result.current, result.M, result.g
+        if M is None or im.lines is None:
+            self._hover = None
+            marks = []
+        else:
+            visible = visible_lines(im.lines, im.logA, im.wl, g.res, M, im.emission)
+            self._hover = dict(visible=visible, ion=im.ion, wave=g.wave, rv=g.rv,
+                               emission=im.emission, res=g.res)
+            marks = mark_positions(visible, g.res)
+        self.line_marks.set_segments([[(x, MARK_Y[0]), (x, MARK_Y[1])] for x in marks])
+        self._show_marks()
+
+    def _show_marks(self):
+        self.line_marks.set_visible(
+            self.mark_lines.isChecked() and self.show_current.isChecked())
+        self.canvas.draw_idle()
+
+    def _on_hover(self, event):
+        """
+        Tooltip describing the current ion's lines near the cursor
+        """
+        text = None
+        if (event.inaxes is self.ax and self._hover is not None
+                and self.line_marks.get_visible()):
+            # Tolerance: the larger of a few pixels and half the resolution
+            x0, x1 = self.ax.get_xlim()
+            per_pixel = abs(x1 - x0) / max(self.ax.bbox.width, 1)
+            tolerance = max(HOVER_PIXELS * per_pixel, self._hover["res"] / 2)
+            near = lines_near(self._hover["visible"], event.xdata, tolerance)
+            if len(near):
+                h = self._hover
+                text = describe_lines(near, h["ion"], h["wave"], h["rv"], h["emission"])
+        if text is None:
+            QtWidgets.QToolTip.hideText()
+        else:
+            QtWidgets.QToolTip.showText(QtGui.QCursor.pos(), text, self.canvas)
 
     # .........................................................................
     # Saved ions

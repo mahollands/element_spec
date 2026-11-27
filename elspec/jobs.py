@@ -21,6 +21,7 @@ class ModelResult:
     current: object  # Copy of the current IonModel, as computed
     M: object  # Its model Spectrum, or None if it could not be computed
     current_error: str | None
+    g: object = None  # The GlobalParams used
     combined: list = field(default_factory=list)  # (IonModel copy, Spectrum)
     skipped: list = field(default_factory=list)  # Labels of saved ions with no model
     elapsed: float = 0.0
@@ -56,7 +57,7 @@ class ModelJob:
             M, current_error = current.model(self.x01, self.g), None
         except ModelError as err:
             M, current_error = None, str(err)
-        result = ModelResult(current, M, current_error)
+        result = ModelResult(current, M, current_error, self.g)
         for _, im in saved:
             try:
                 result.combined.append((im, im.model(self.x01, self.g)))
